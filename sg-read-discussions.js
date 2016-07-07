@@ -5,8 +5,7 @@
 // @version      0.2
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    https://github.com/britvik/WebScripts/sg-read-discussions
-// @downloadURL  https://github.com/britvik/WebScripts/sg-read-discussions
-// @updateURL    https://github.com/britvik/WebScripts/sg-read-discussions
+// @downloadURL  https://raw.githubusercontent.com/britvik/WebScripts/master/sg-read-discussions.js
 // ==/UserScript==
 
 var storageName = 'Bladito_sg_read-discussions';
