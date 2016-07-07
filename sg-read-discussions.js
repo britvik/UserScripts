@@ -2,7 +2,7 @@
 // @name         SG read discussions
 // @description  Automatically mark read discussions
 // @author       Bladito
-// @version      0.1
+// @version      0.2
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    https://github.com/britvik/WebScripts/sg-read-discussions
 // @downloadURL  https://github.com/britvik/WebScripts/sg-read-discussions
