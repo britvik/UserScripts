@@ -2,7 +2,7 @@
 // @name         SG discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user
 // @author       Bladito
-// @version      0.5
+// @version      0.6
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
@@ -54,50 +54,48 @@
         var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, $commentsCountElement, commentsCount, newCommentsCount, newCommentsStyles, originalPoster,
             readDiscussion, readDiscussions = getReadDiscussions(), stalkedUsers = getStalkedUsers(), markedDiscussions = getMarkedDiscussions();
 
-        if (readDiscussions) {
-            $('a.table__column__heading').each(function() {
-                $this = $(this);
-                $outerWrap = $this.closest('.table__row-outer-wrap');
-                linkDiscussionMatch = matchDiscussion(this.href);
-                readDiscussion = readDiscussions[linkDiscussionMatch[1]];
+        $('a.table__column__heading').each(function() {
+            $this = $(this);
+            $outerWrap = $this.closest('.table__row-outer-wrap');
+            linkDiscussionMatch = matchDiscussion(this.href);
+            readDiscussion = readDiscussions[linkDiscussionMatch[1]];
 
-                if (readDiscussion) { //we have read this discussion already
-                    $outerWrap.css({
-                        opacity: 0.3,
-                        margin: '0 -20px 0 20px'
-                    });
-                    if (readDiscussion.name !== linkDiscussionMatch[2]) { //OP changed discussion name
-                        $this.css('color', '#fd00ff');
-                        $this.attr('title', 'Changed from: "' + readDiscussion.name + '"');
-                    }
-                    $commentsCountElement = $outerWrap.find('.table__column--width-small .table__column__secondary-link');
-                    commentsCount = parseNumberFromElement($commentsCountElement);
-                    if (readDiscussion.comments !== commentsCount) {
-                        newCommentsCount = commentsCount - readDiscussion.comments;
-                        newCommentsStyles = getStylesForNewComments(newCommentsCount);
-                        $commentsCountElement.after('<span style="'+newCommentsStyles.section+'"><span style="'+newCommentsStyles.number+'">(+'+newCommentsCount+')</span></span>');
-                    }
+            if (readDiscussion) { //we have read this discussion already
+                $outerWrap.css({
+                    opacity: 0.3,
+                    margin: '0 -20px 0 20px'
+                });
+                if (readDiscussion.name !== linkDiscussionMatch[2]) { //OP changed discussion name
+                    $this.css('color', '#fd00ff');
+                    $this.attr('title', 'Changed from: "' + readDiscussion.name + '"');
                 }
-                originalPoster = $outerWrap.find('.table__column--width-fill .table__column__secondary-link:eq(1)').text();
-
-                $buttonsWrap = $('<div class="action-btns-wrap"></div>');
-                $outerWrap.prepend($buttonsWrap);
-
-                if (stalkedUsers.indexOf(originalPoster) > -1) {
-                    markPostOfStalkedUser($outerWrap);
-                    addUnstalkButton($buttonsWrap, $outerWrap, originalPoster);
-                } else {
-                    addStalkButton($buttonsWrap, $outerWrap, originalPoster);
+                $commentsCountElement = $outerWrap.find('.table__column--width-small .table__column__secondary-link');
+                commentsCount = parseNumberFromElement($commentsCountElement);
+                if (readDiscussion.comments !== commentsCount) {
+                    newCommentsCount = commentsCount - readDiscussion.comments;
+                    newCommentsStyles = getStylesForNewComments(newCommentsCount);
+                    $commentsCountElement.after('<span style="'+newCommentsStyles.section+'"><span style="'+newCommentsStyles.number+'">(+'+newCommentsCount+')</span></span>');
                 }
+            }
+            originalPoster = $outerWrap.find('.table__column--width-fill .table__column__secondary-link:eq(1)').text();
 
-                if (markedDiscussions.indexOf(linkDiscussionMatch[1]) > -1) {
-                    markDiscussion($outerWrap);
-                    addUnmarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
-                } else {
-                    addMarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
-                }
-            });
-        }
+            $buttonsWrap = $('<div class="action-btns-wrap"></div>');
+            $outerWrap.prepend($buttonsWrap);
+
+            if (stalkedUsers.indexOf(originalPoster) > -1) {
+                markPostOfStalkedUser($outerWrap);
+                addUnstalkButton($buttonsWrap, $outerWrap, originalPoster);
+            } else {
+                addStalkButton($buttonsWrap, $outerWrap, originalPoster);
+            }
+
+            if (markedDiscussions.indexOf(linkDiscussionMatch[1]) > -1) {
+                markDiscussion($outerWrap);
+                addUnmarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
+            } else {
+                addMarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
+            }
+        });
     }
 
     function addStalkButton($buttonsWrap, $outerWrap, originalPoster) {
@@ -174,10 +172,7 @@
     }
 
     function getReadDiscussions() {
-        var readDiscussions = localStorage.getItem(storageName);
-        if (readDiscussions) {
-            return JSON.parse(readDiscussions);
-        }
+        return JSON.parse(localStorage.getItem(storageName)) || {};
     }
 
     function getStalkedUsers() {
