@@ -2,7 +2,7 @@
 // @name         Auto mp3 downloader
 // @description  Automatic download of multiple mp3s from http://www.emp3z.ws/. Just insert list of songs (each on new line) into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.1
+// @version      0.2
 // @match        http://www.emp3z.ws/*
 // @namespace    Bladito/auto-mp3-downloader
 // @grant        none
@@ -162,9 +162,9 @@ function insertCustomHTMLElements() {
 
     customElements =
         '<div class="input-group col-lg-8" style="padding-top: 15px;">' +
-          '<textarea id="my-dl-list" class="form-control" rows="5" placeholder="Insert one or multiple songs separated by enter."/>' +
-          '<span class="input-group-btn">' +
-            '<button id="my-btn" class="btn btn-primary" style="height: 100%; border: none; padding: 0 14px;">Auto Download</button>' +
+          '<textarea id="my-dl-list" class="form-control" style="height: 120px;" placeholder="Insert one or multiple songs separated by enter."/>' +
+          '<span class="input-group-btn" style="vertical-align: top;">' +
+            '<button id="my-btn" class="btn btn-primary" style="height: 100%; min-height: 120px; border: none; padding: 0 14px;">Auto Download</button>' +
           '</span>' +
         '</div>'
     ;
