@@ -2,7 +2,7 @@
 // @name         SG discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user
 // @author       Bladito
-// @version      0.6
+// @version      0.7
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
@@ -51,7 +51,7 @@
     }
 
     function markReadDiscussions() {
-        var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, $commentsCountElement, commentsCount, newCommentsCount, newCommentsStyles, originalPoster,
+        var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, $commentsCountElement, commentsCount, newCommentsCount, originalPoster,
             readDiscussion, readDiscussions = getReadDiscussions(), stalkedUsers = getStalkedUsers(), markedDiscussions = getMarkedDiscussions();
 
         $('a.table__column__heading').each(function() {
@@ -61,20 +61,16 @@
             readDiscussion = readDiscussions[linkDiscussionMatch[1]];
 
             if (readDiscussion) { //we have read this discussion already
-                $outerWrap.css({
-                    opacity: 0.3,
-                    margin: '0 -20px 0 20px'
-                });
+                $outerWrap.addClass('bsg-discussion-read');
                 if (readDiscussion.name !== linkDiscussionMatch[2]) { //OP changed discussion name
-                    $this.css('color', '#fd00ff');
+                    $this.addClass('bsg-discussion-title-changed');
                     $this.attr('title', 'Changed from: "' + readDiscussion.name + '"');
                 }
                 $commentsCountElement = $outerWrap.find('.table__column--width-small .table__column__secondary-link');
                 commentsCount = parseNumberFromElement($commentsCountElement);
                 if (readDiscussion.comments !== commentsCount) {
                     newCommentsCount = commentsCount - readDiscussion.comments;
-                    newCommentsStyles = getStylesForNewComments(newCommentsCount);
-                    $commentsCountElement.after('<span style="'+newCommentsStyles.section+'"><span style="'+newCommentsStyles.number+'">(+'+newCommentsCount+')</span></span>');
+                    $commentsCountElement.after('<span class="'+getClassesForNewComments(newCommentsCount)+'">(+'+newCommentsCount+')</span>');
                 }
             }
             originalPoster = $outerWrap.find('.table__column--width-fill .table__column__secondary-link:eq(1)').text();
@@ -137,32 +133,29 @@
     }
 
     function markPostOfStalkedUser($outerWrap) {
-        $outerWrap.css('border', '2px solid red');
+        $outerWrap.addClass('bsg-stalked-discussion');
     }
     function unmarkPostOfStalkedUser($outerWrap) {
-        $outerWrap.css('border', '');
+        $outerWrap.removeClass('bsg-stalked-discussion');
     }
 
     function markDiscussion($outerWrap) {
-        $outerWrap.css('border', '2px dashed green');
+        $outerWrap.addClass('bsg-marked-discussion');
     }
     function unmarkDiscussion($outerWrap) {
-        $outerWrap.css('border', '');
+        $outerWrap.removeClass('bsg-marked-discussion');
     }
 
-    function getStylesForNewComments(commentsCount) {
-        var styles = {number: '', section: ''};
+    function getClassesForNewComments(commentsCount) {
+        var classes = 'bsg-new-comments ';
         if (commentsCount >= 100) {
-            styles.section = 'color: #fd00ff; margin-left: 5px;';
-            styles.number = 'font-size: 25px; font-weight: 900;';
+            classes += 'm-high';
         } else if (commentsCount >= 50) {
-            styles.section = 'color: red; margin-left: 5px;';
-            styles.number = 'font-size: 20px; font-weight: 600;';
+            classes += 'm-medium';
         } else if (commentsCount >= 10) {
-            styles.section = 'color: blue; margin-left: 5px;';
-            styles.number = 'font-size: 13px;';
+            classes += 'm-low';
         }
-        return styles;
+        return classes;
     }
 
     function addReadDiscussion(id, discussion) {
@@ -238,6 +231,37 @@
                     'background-image: linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
                     'background-image: -moz-linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
                     'background-image: -webkit-linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
+                    '}');
+
+        GM_addStyle('.bsg-discussion-read.table__row-outer-wrap {' +
+                    'opacity: 0.3;' +
+                    '}');
+        GM_addStyle('.bsg-stalked-discussion.table__row-outer-wrap {' +
+                    'border: 2px solid red;' +
+                    'opacity: 1;' +
+                    '}');
+        GM_addStyle('.bsg-marked-discussion.table__row-outer-wrap {' +
+                    'border: 2px dashed green;' +
+                    'opacity: 1;' +
+                    '}');
+        GM_addStyle('.bsg-discussion-title-changed {' +
+                    'color: #fd00ff;' +
+                    '}');
+
+        GM_addStyle('.bsg-new-comments {' +
+                    'margin-left: 5px;' +
+                    '}');
+        GM_addStyle('.bsg-new-comments.m-high {' +
+                    'color: #fd00ff;' +
+                    'font-size: 25px; font-weight: 900;' +
+                    '}');
+        GM_addStyle('.bsg-new-comments.m-medium {' +
+                    'color: red;' +
+                    'font-size: 20px; font-weight: 600;' +
+                    '}');
+        GM_addStyle('.bsg-new-comments.m-low {' +
+                    'color: blue;' +
+                    'font-size: 13px;' +
                     '}');
     }
 
