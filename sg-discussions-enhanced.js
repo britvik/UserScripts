@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SG discussions enhanced
-// @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user
+// @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.7
+// @version      0.8
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
@@ -13,10 +13,12 @@
     'use strict';
 
     var storageName = 'Bladito_sg_discussions-read',     // discussions that user already read - saved automatically
+        sortingStorageName = 'Bladito_sg_sorting',
         stalkedStorageName = 'Bladito_sg_discussions-stalked-users', // stlaked users (all their discussions will be highlighted) - saved manually
         markedDiscussionsStorageName = 'Bladito_sg_discussions-marked'; // marked discussions (highligted speciffic discussions) - saved manually
 
     addStyles();
+    makeHeadersSortable();
 
     var discussionMatch = matchDiscussion(location.href);
     var discussionsMatch = location.href.match(/.*\/discussions\/?/);
@@ -204,6 +206,124 @@
         }
     }
 
+    function makeHeadersSortable() {
+        var $tableHeading = $('.table__heading div');
+
+        var sortByCreationDateLink = $('<a class="bsg-sort-link CreationDate">Summary</a>');
+        var sortByCommentsLink = $('<a class="bsg-sort-link Comments">Comments</a>');
+        var sortByLastPostLink = $('<a class="bsg-sort-link LastPost">Last Post</a>');
+        sortByCreationDateLink.on('click', function() {updateSortIcon('CreationDate'); sortByCreationDate(); });
+        sortByCommentsLink.on('click', function() {updateSortIcon('Comments'); sortByComments(); });
+        sortByLastPostLink.on('click', function() {updateSortIcon('LastPost'); sortByLastPost(); });
+
+        $tableHeading.eq(0).contents().replaceWith(sortByCreationDateLink);
+        $tableHeading.eq(1).contents().replaceWith(sortByCommentsLink);
+        $tableHeading.eq(2).contents().replaceWith(sortByLastPostLink);
+
+        addSortingIcon();
+        if (getSorting().indexOf('CreationDate') > -1) {
+            sortByCreationDate();
+        } else if (getSorting().indexOf('Comments') > -1) {
+            sortByComments();
+        } else if (getSorting().indexOf('LastPost') > -1) {
+            sortByLastPost();
+        }
+    }
+
+    function updateSortIcon(sortingName) {
+        var sortingBy = getSorting();
+        if (sortingBy.indexOf(sortingName) > -1) {
+            sortingBy = flipSign(sortingBy);
+        } else {
+            sortingBy = '+' + sortingName;
+        }
+        setSorting(sortingBy);
+        clearSorting();
+        addSortingIcon();
+        return sortingBy;
+    }
+
+    function doSort(attributeSelector, normalizer) {
+        var sortingBy = getSorting();
+
+        $('.table__row-outer-wrap').sort(function (a, b) {
+            var first = normalizer($(a).find(attributeSelector).text());
+            var second = normalizer($(b).find(attributeSelector).text());
+            var result;
+            result = first < second ? -1 : (first > second ? 1 : 0);
+            if (sortingBy[0] === '-') {
+                result *= -1;
+            }
+            return result;
+        }).appendTo(".table__rows");
+    }
+
+    function sortByCreationDate() {
+        doSort('.table__row-inner-wrap > .table__column--width-fill > p > span', getNormlizedTime);
+    }
+    function sortByLastPost() {
+        doSort('.table__row-inner-wrap > .table__column--last-comment p > span', getNormlizedTime);
+    }
+    function sortByComments() {
+        doSort('.table__column--width-small a', function(commentCountAsText) {
+            return +commentCountAsText.replace(/[^\d]/g, '');
+        });
+    }
+
+    function getNormlizedTime(creationDateAsText) {
+        if (creationDateAsText.indexOf('second') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000;
+        }
+        if (creationDateAsText.indexOf('minute') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60;
+        }
+        if (creationDateAsText.indexOf('hour') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60;
+        }
+        if (creationDateAsText.indexOf('day') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24;
+        }
+        if (creationDateAsText.indexOf('week') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7;
+        }
+        if (creationDateAsText.indexOf('month') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4;
+        }
+        if (creationDateAsText.indexOf('year') > -1) {
+            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4 * 12;
+        }
+        return 0;
+    }
+
+    function clearSorting() {
+        $('.bsg-sort-link i').remove();
+    }
+
+    function addSortingIcon() {
+        var icon, sortingBy = getSorting();
+        if (sortingBy[0] === '+') {
+            icon = '<i class="fa fa-sort-amount-asc"></i>';
+        } else {
+            icon = '<i class="fa fa-sort-amount-desc"></i>';
+        }
+        $('.bsg-sort-link.' + sortingBy.slice(1)).prepend(icon);
+    }
+
+    function flipSign(sortingBy) {
+        if (sortingBy[0] === '+') {
+            return '-' + sortingBy.slice(1);
+        }
+        return '+' + sortingBy.slice(1);
+    }
+
+    function setSorting(sortingBy) {
+        localStorage.setItem(sortingStorageName, sortingBy);
+    }
+
+    function getSorting() {
+        return localStorage.getItem(sortingStorageName) || "+LastPost";
+    }
+
     function addStyles() {
         GM_addStyle('.action-btns-wrap { display: none; position: absolute; margin-left: -115px; width: 115px; }');
         GM_addStyle('.table__row-outer-wrap:hover > .action-btns-wrap { display: block; }');
@@ -262,6 +382,10 @@
         GM_addStyle('.bsg-new-comments.m-low {' +
                     'color: blue;' +
                     'font-size: 13px;' +
+                    '}');
+        GM_addStyle('.bsg-sort-link {' +
+                    'color: #4B72D4;' +
+                    'cursor: pointer;' +
                     '}');
     }
 
