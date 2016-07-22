@@ -2,7 +2,7 @@
 // @name         SG discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.8
+// @version      0.9
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
@@ -18,7 +18,6 @@
         markedDiscussionsStorageName = 'Bladito_sg_discussions-marked'; // marked discussions (highligted speciffic discussions) - saved manually
 
     addStyles();
-    makeHeadersSortable();
 
     var discussionMatch = matchDiscussion(location.href);
     var discussionsMatch = location.href.match(/.*\/discussions\/?/);
@@ -26,6 +25,7 @@
     if (discussionMatch !== null) {
         rememberReadDiscussion(discussionMatch);
     } else if (discussionsMatch !== null) {
+        makeHeadersSortable();
         markReadDiscussions();
     }
 
