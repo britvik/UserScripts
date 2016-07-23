@@ -2,11 +2,10 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.1
+// @version      0.2
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
 // @require      http://code.jquery.com/jquery-latest.js
-// @require      https://raw.githubusercontent.com/localhost/jquery-fieldselection/master/jquery-fieldselection.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -65,7 +64,7 @@
 
     function insertToTextarea(commentTextarea, preChars, textBetween, postChars, callback) {
         var newText, text = commentTextarea.val();
-        var textSelection = commentTextarea.getSelection();
+        var textSelection = commentTextarea.bsgGetSelection();
 
         newText = text.slice(0,textSelection.start) + preChars + (textBetween || textSelection.text) + postChars + text.slice(textSelection.end);
         commentTextarea.val(newText);
@@ -92,6 +91,36 @@
                     range.select();
                 }
             });
+        };
+        //copied from https://github.com/localhost/jquery-fieldselection/blob/master/jquery-fieldselection.js
+        $.fn.bsgGetSelection = function() {
+            var e = (this.jquery) ? this[0] : this;
+            return (
+                /* mozilla / dom 3.0 */
+                ('selectionStart' in e && function() {
+                    var l = e.selectionEnd - e.selectionStart;
+                    return { start: e.selectionStart, end: e.selectionEnd, length: l, text: e.value.substr(e.selectionStart, l) };
+                }) ||
+
+                /* exploder */
+                (document.selection && function() {
+                    e.focus();
+                    var r = document.selection.createRange();
+                    if (r === null) {
+                        return { start: 0, end: e.value.length, length: 0 };
+                    }
+
+                    var re = e.createTextRange();
+                    var rc = re.duplicate();
+                    re.moveToBookmark(r.getBookmark());
+                    rc.setEndPoint('EndToStart', re);
+
+                    return { start: rc.text.length, end: rc.text.length + r.text.length, length: r.text.length, text: r.text };
+                }) ||
+
+                /* browser not supported */
+                function() { return null; }
+            )();
         };
     }
 
