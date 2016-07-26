@@ -2,8 +2,8 @@
 // @name         Auto mp3 downloader
 // @description  Automatic download of multiple mp3s from http://www.emp3z.com. Just insert list of songs (each on new line) into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.3
-// @match        http://www.emp3z.com/*
+// @version      0.4
+// @match        https://www.emp3z.com/*
 // @namespace    Bladito/auto-mp3-downloader
 // @grant        none
 // ==/UserScript==
@@ -24,24 +24,36 @@
 
     init();
 
-    log('state=',getState());
+    log('state=',getState(),window.location.pathname);
 
     if (getState() === STATE.IDLE || getState() === STATE.DOWNLOADING) {
         insertCustomHTMLElements();
     }
+    if (getState() === STATE.IDLE) {
+        printResults(true);
+    }
 
     if (getState() === STATE.FINDING_URLS) {
         if (isResultsPage()) {
-            log('opening download page');
+            log('song found');
             window.location.href = $('a[href^="/download"')[0].href;
         } else if (isDetailPage()) {
+            log('remembering download url');
             $('#dl1').click();
             rememberUrlForSong();
+        } else if (isNotFoundPage()) {
+            log('song not found');
+            setFoundDataForCurrentSong('N/A', undefined);
+            findUrlForNextSong();
+        } else if (isMainPage()) {
+            addResetButton();
         }
     }
 
     if (getState() === STATE.DOWNLOADING) {
         downloadSongs();
+        printResults();
+        resetInitialState(true);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -83,17 +95,19 @@
             $('input[name="search"]').val(nextSong.name);
             $('input[name="search"]').parents('form').submit();
         } else {
-            location.href = 'http://www.emp3z.ws/';
+            location.href = 'https://www.emp3z.com/';
         }
     }
 
-    function setFoundUrlForCurrentSong(songUrl) {
+    function setFoundDataForCurrentSong(songName, songUrl) {
         var currentSong = getNowFinding(),
             list = getMp3List();
 
         for (var i=0; i<list.length; i+=1) {
             if (list[i].name === currentSong) {
+                list[i].processed = true;
                 list[i].url = songUrl;
+                list[i].foundName = songName;
                 log('SAVED URL ', songUrl, ' for song ', list[i].name);
                 break;
             }
@@ -106,7 +120,7 @@
         var list = getMp3List();
 
         for (var i=0; i<list.length; i+=1) {
-            if (list[i].url === undefined) {
+            if (list[i].processed !== true) {
                 return list[i];
             }
         }
@@ -135,26 +149,28 @@
             if (link && link.href && link.href.length > 0) {
                 window.clearInterval(interval);
                 log('found link! ', link.href);
-                setFoundUrlForCurrentSong(link.href);
+                setFoundDataForCurrentSong($('.song-list ul:eq(0) li:eq(0) a b').text(), link.href);
                 findUrlForNextSong();
             }
         }, 1000);
     }
 
     function downloadSongs() {
-        var list = getMp3List(),
-            output = '\n';
+        var list = getMp3List();
 
         for (var i=0; i<list.length; i+=1) {
-            window.open(list[i].url, '_blank');
-            list[i].downloaded = true;
-            output += ' - ' + list[i].name + '\n';
+            if (list[i].url) {
+                window.open(list[i].url, '_blank');
+            }
         }
+    }
 
-        setMp3List(list);
+    function resetInitialState(keepList) {
         setState(STATE.IDLE);
         setNowFinding(null);
-        alert('Download initiated. ' + list.length + ' songs.' + output);
+        if (!keepList) {
+            setMp3List([]);
+        }
     }
 
     function insertCustomHTMLElements() {
@@ -173,6 +189,57 @@
         $('#my-btn').click(findDownloadUrls);
     }
 
+    function printResults(isOldResult) {
+        var resultsHtml,
+            resultsMessageHtml,
+            list = getMp3List(),
+            failedCounter = 0,
+            searchForm = $('form[action^="/search"]'),
+            resultColor = isOldResult ? '#008cba;' : '#71bf44;';
+
+        resultsHtml = '<div class="input-group col-lg-12" style="padding: 15px; border: 1px solid '+resultColor+'"><table style="width: 100%;"><tbody><tr><th>Searched Song</th><th>Found Song</th><th></th><tr>';
+
+        for (var i=0; i<list.length; i+=1) {
+            resultsHtml += '<tr><td>' + list[i].name + '</td><td>' + list[i].foundName + '</td><td>';
+            if (list[i].url) {
+                resultsHtml += '<a href="' + list[i].url + '">Redownload</a>';
+            } else {
+                resultsHtml += 'Not found';
+                failedCounter += 1;
+            }
+            resultsHtml += '</td></tr>';
+        }
+        setMp3List(list);
+
+        resultsHtml += '</tbody></table></div>';
+        resultsHtml = $(resultsHtml);
+
+        if (isOldResult) {
+            resultsMessageHtml = '<div class="input-group col-lg-12" style="height: 50px; line-height: 50px; margin-top: 15px; color: white; background-color: '+resultColor+'">Last time you searched for:';
+        } else {
+            resultsMessageHtml = '<div class="input-group col-lg-12" style="height: 50px; line-height: 50px; margin-top: 15px; color: white; background-color: '+resultColor+'">Found: ' + (list.length - failedCounter) + '/' + list.length + ' songs.';
+        }
+
+        searchForm.append(resultsHtml);
+        resultsHtml.before(resultsMessageHtml);
+    }
+
+    function addResetButton() {
+        var customElements, searchForm = $('form[action^="/search"]');
+
+        customElements =
+            '<div class="input-group col-lg-12" style="height: 50px; margin-top: 15px; color: white; background-color: #d9534f;">Oops, something went wrong :(.' +
+            '<button id="my-reset-btn" type="button" class="btn btn-primary" style="margin-left: 15px;">Reset to initial state</button>' +
+            '</div>'
+        ;
+
+        searchForm.append(customElements);
+        $('#my-reset-btn').click(function() {
+            resetInitialState();
+            location.href = 'https://www.emp3z.com/';
+        });
+    }
+
     function isResultsPage() {
         return isSubstringInURL('/mp3/');
     }
@@ -180,6 +247,15 @@
     function isDetailPage() {
         return isSubstringInURL('/download/');
     }
+
+    function isNotFoundPage() {
+        return isSubstringInURL('/404.php');
+    }
+
+    function isMainPage() {
+        return window.location.pathname === '/';
+    }
+
 
     function isSubstringInURL(substring) {
         return window.location.pathname.substring(0, substring.length) === substring;
