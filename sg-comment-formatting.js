@@ -2,7 +2,7 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.2
+// @version      0.3
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
 // @require      http://code.jquery.com/jquery-latest.js
@@ -12,7 +12,10 @@
 (function($) {
     'use strict';
 
+    var storageImage = 'Bladito_sg_comments_images';
+    var storageEmojis = 'Bladito_sg_comments_emojis';
     var commentTextareas = $('textarea[name="description"]');
+    var targetTextarea; //textarea used for inserting images/emojis
 
     if (commentTextareas.length) {
         enrichJquery();
@@ -29,6 +32,9 @@
         addWrappingFormatter('<i class="fa fa-low-vision"></i>', 'Spoiler', '~');
         addWrappingFormatter('<i class="fa fa-strikethrough"></i>', 'Strike through', '~~');
 
+        addEmojis();
+        addImages();
+
         commentTextareas.on('paste', handlePastedURL);
     }
 
@@ -42,8 +48,88 @@
         commentTextareas.before(bold);
     }
 
+    function addEmojis() {
+        var emojiContainer = $('<div class="bsg-emoji-container"></div>'),
+            emojiButton = $('<button type="button" class="bsg-formatting-btn bsg-emojis-dropdown"><i class="fa fa-smile-o"></i></button>'),
+            storedEmojis = getStoredEmojis();
+
+        $('body').append(emojiContainer);
+        commentTextareas.before(emojiButton);
+
+        for (var i=0; i<storedEmojis.length; i+=1) {
+            addEmoji(storedEmojis[i]);
+        }
+
+        $(document).mouseup(function(e) {
+            if (!emojiContainer.is(e.target) && emojiContainer.has(e.target).length === 0) {
+                emojiContainer.removeClass('m-shown');
+            }
+        });
+        $('.bsg-emojis-dropdown').click(function() {
+            var $this = $(this);
+            targetTextarea = $this.siblings('textarea').eq(0);
+            emojiContainer.toggleClass('m-shown');
+            emojiContainer.css({
+                'top': $this.offset().top - 300,
+                'left': $this.offset().left + 25
+            });
+        });
+    }
+    function addEmoji(emojiString) {
+        var emojiContainer = $('.bsg-emoji-container'),
+            emojiElement = $('<div class="bsg-emoji-wrapper"><span class="bsg-emoji">' + emojiString + '</span></div>');
+        emojiElement.click(function() {
+            insertToTextarea(targetTextarea, '', normalizeEmoji(emojiString), '', function(textarea, textSelection) {
+                textarea.bsgSelectRange(textSelection.start + emojiString.length);
+            });
+            emojiContainer.toggleClass('m-shown');
+        });
+        emojiContainer.append(emojiElement);
+    }
+
+    function addImages() {
+        var imgContainer = $('<div class="bsg-image-container"></div>'),
+            imgButton = $('<button type="button" class="bsg-formatting-btn bsg-images-dropdown"><i class="fa fa-picture-o"></i></button>'),
+            storedImages = getStoredImages();
+
+        $('body').append(imgContainer);
+        commentTextareas.before(imgButton);
+
+        for (var i=0; i<storedImages.length; i+=1) {
+            addImage(storedImages[i]);
+        }
+
+        $(document).mouseup(function(e) {
+            if (!imgContainer.is(e.target) && imgContainer.has(e.target).length === 0) {
+                imgContainer.removeClass('m-shown');
+            }
+        });
+        $('.bsg-images-dropdown').click(function() {
+            var $this = $(this);
+            targetTextarea = $this.siblings('textarea').eq(0);
+            imgContainer.toggleClass('m-shown');
+            imgContainer.css({
+                'top': $this.offset().top - 300,
+                'left': $this.offset().left + 25
+            });
+        });
+    }
+    function addImage(imageUrl) {
+        var imgContainer = $('.bsg-image-container'),
+            imgElement = $('<div class="bsg-image-wrapper"><img class="bsg-image" src="' + imageUrl + '"/></div>');
+        imgElement.click(function() {
+            insertToTextarea(targetTextarea, '![](', imageUrl, ')', function(textarea, textSelection) {
+                textarea.bsgSelectRange(textarea.val().length - imageUrl.length - 3);
+            }, true);
+            imgContainer.toggleClass('m-shown');
+        });
+        imgContainer.append(imgElement);
+    }
+
     function handlePastedURL(e) {
-        var preChars, pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
+        var preChars,
+            textArea = $(e.target),
+            pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
 
         if (pastedData) {
             if (/^https?:\/\/(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:\/[^/#?]+)+/i.test(pastedData)) {
@@ -55,20 +141,33 @@
             if (preChars) {
                 e.stopPropagation();
                 e.preventDefault();
-                insertToTextarea($(e.target), preChars, pastedData, ')', function(textarea, textSelection) {
+                insertToTextarea(textArea, preChars, pastedData, ')', function(textarea, textSelection) {
                     textarea.bsgSelectRange(textSelection.start + (preChars.length === 3 ? 1 : 2));
                 });
+                storeImage(pastedData);
+                addImage(pastedData, textArea);
             }
         }
     }
 
-    function insertToTextarea(commentTextarea, preChars, textBetween, postChars, callback) {
-        var newText, text = commentTextarea.val();
-        var textSelection = commentTextarea.bsgGetSelection();
+    function insertToTextarea(commentTextarea, preChars, textBetween, postChars, callback, pasteAtEnd) {
+        var newText, text = commentTextarea.val(),
+            textSelection = commentTextarea.bsgGetSelection(),
+            insertion = preChars + (textBetween || textSelection.text) + postChars;
 
-        newText = text.slice(0,textSelection.start) + preChars + (textBetween || textSelection.text) + postChars + text.slice(textSelection.end);
+        if (pasteAtEnd) {
+            newText = (text.length ? (text + '\n') : '') + insertion;
+        } else {
+            newText = text.slice(0,textSelection.start) + insertion + text.slice(textSelection.end);
+        }
         commentTextarea.val(newText);
-        callback(commentTextarea, textSelection);
+        if (callback) {
+            callback(commentTextarea, textSelection);
+        }
+    }
+
+    function normalizeEmoji(emojiString) {
+        return emojiString.replace(/\\/g, '\\\\').replace(/_/g, '\\_');
     }
 
     function enrichJquery() {
@@ -124,6 +223,50 @@
         };
     }
 
+    function storeImage(url) {
+        var images = getStoredImages();
+        images.push(url);
+        localStorage.setItem(storageImage, JSON.stringify(images));
+    }
+    function getStoredImages() {
+        return JSON.parse(localStorage.getItem(storageImage)) || defaultImages();
+    }
+
+    function storeEmoji(emojiString) {
+        var emojis = getStoredEmojis();
+        emojis.push(emojiString);
+        localStorage.setItem(storageEmojis, JSON.stringify(emojiString));
+    }
+    function getStoredEmojis() {
+        return JSON.parse(localStorage.getItem(storageEmojis)) || defaultEmojis();
+    }
+
+    function defaultImages() {
+        return [
+            'https://s-media-cache-ak0.pinimg.com/564x/9c/76/1f/9c761ffd187eef6e11e28188a6ff7075.jpg',
+            'http://webtrax.hu/myfacewhen/faces/animals/kitty-facepalm.jpg',
+            'http://www.getcatnipdaily.com/wp-content/uploads/sites/713/2015/05/4Kitty-barlow-250x200.jpg',
+            'http://i24.photobucket.com/albums/c12/InkBlotPsycho/Cats/KITTY_crazy.jpg',
+            'https://femmolitical.files.wordpress.com/2013/03/shocked-cat.jpg',
+            'http://sadcatdiary.com/wp-content/uploads/2015/07/sadcatsmall.jpg'
+        ];
+    }
+    function defaultEmojis() {
+        return [
+            '¯\\_(ツ)_/¯',
+            '( ͡° ͜ʖ ͡°)',
+            '( ͡⊙ ͜ʖ ͡⊙)',
+            '(ノಠ益ಠ)ノ',
+            '(╯°□°）╯︵ ┻━┻',
+            'ლ(ಠ益ಠლ)',
+            '(◕‿-)✌',
+            '(ಠ_ಠ)',
+            '(¬､¬)',
+            '(─‿‿─)',
+            '(ಥ﹏ಥ)'
+        ];
+    }
+
     function addStyles() {
         GM_addStyle('.bsg-formatting-btn { ' +
                     'display: inline-block;' +
@@ -143,6 +286,73 @@
                     'background-image: linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
                     'background-image: -moz-linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
                     'background-image: -webkit-linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
+                    '}');
+        GM_addStyle('.bsg-formatting-btn.bsg-emojis-dropdown, .bsg-formatting-btn.bsg-images-dropdown {' +
+                    'float: right;' +
+                    '}');
+        GM_addStyle('.bsg-image-container {' +
+                    'font-size: 0;' +
+                    'display: none;' +
+                    'position: absolute;' +
+                    'overflow-y: auto;' +
+                    'width: 320px;' +
+                    'height: 450px;' +
+                    '}');
+        GM_addStyle('.bsg-emoji-container {' +
+                    'display: none;' +
+                    'position: absolute;' +
+                    'overflow-y: auto;' +
+                    'height: 450px;' +
+                    'color: black;' +
+                    '}');
+        GM_addStyle('.bsg-emoji-wrapper {' +
+                    'display: block;' +
+                    'margin: 0;' +
+                    'padding: 5px;' +
+                    'background: #fff;' +
+                    'cursor: pointer;' +
+                    'overflow: hidden;' +
+                    '}');
+        GM_addStyle('.bsg-emoji-wrapper:hover {' +
+                    'background: #e8eeff;' +
+                    '}');
+        GM_addStyle('.bsg-emoji {' +
+                    '}');
+        GM_addStyle('.bsg-image-container.m-shown, .bsg-emoji-container.m-shown {' +
+                    'display: block;' +
+                    '}');
+        GM_addStyle('.bsg-image-wrapper {' +
+                    'display: inline-block;' +
+                    'width: 150px;' +
+                    'height: 150px;' +
+                    'margin: 0;' +
+                    'padding: 0;' +
+                    'background: #fff;' +
+                    'overflow: hidden;' +
+                    '}');
+        GM_addStyle('.bsg-image {' +
+                    'width: 150px;' +
+                    'height: 150px;' +
+                    'cursor: pointer;' +
+                    //rotate
+                    //'-webkit-transform: rotate(15deg) scale(1.4);' +
+                    //'transform: rotate(15deg) scale(1.4);' +
+                    //'-webkit-transition: .3s ease-in-out;' +
+                    //'transition: .3s ease-in-out;' +
+                    //zoom in
+                    '-webkit-transform: scale(1);' +
+                    'transform: scale(1);' +
+                    '-webkit-transition: .3s ease-in-out;' +
+                    'transition: .3s ease-in-out;' +
+                    '}');
+        GM_addStyle('.bsg-image:hover {' +
+                    'height: 150px;' +
+                    //rotate
+                    //'-webkit-transform: rotate(0) scale(1);' +
+                    //'transform: rotate(0) scale(1);' +
+                    //zoom in
+                    '-webkit-transform: scale(1.3);' +
+                    'transform: scale(1.3);' +
                     '}');
     }
 
