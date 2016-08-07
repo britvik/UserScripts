@@ -23,12 +23,14 @@ Few useful scripts for Google Chrome Tampermonkey extension (or Greasemonkey in 
 - Adds few buttons to help you format your comments (bold, italics, etc.)
 - If you paste page url or image url, it gets formatted automatticaly
 
+<h3>steam-dlc-wishlister.js</h3>
+- for [Chrome]
+- Tired of adding a billion Call of duty DLCs to wishlist? Try this script!
+- Adds a button that lets you wishlist all DLCs at once
+
 <h3>Known bugs:</h3>
 <span>I will fix them when I have some free time, for now, you have to live with them :( sorry</span>
 <ul>
-<li>
-<b>Auto mp3 downloader</b> - If no song is found (happens very very rarely) it breaks. You can fix it by deleting local storage entries for my script or you can just manually find that (or any) song and downloading will continue.
-</li>
 <li>
 <b>SG discussions enhanced</b>
 <ol>
