@@ -2,7 +2,7 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.3
+// @version      0.4
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
 // @require      http://code.jquery.com/jquery-latest.js
@@ -16,6 +16,7 @@
     var storageEmojis = 'Bladito_sg_comments_emojis';
     var commentTextareas = $('textarea[name="description"]');
     var targetTextarea; //textarea used for inserting images/emojis
+    var lastRemovedImage;
 
     if (commentTextareas.length) {
         enrichJquery();
@@ -88,11 +89,11 @@
     }
 
     function addImages() {
-        var imgContainer = $('<div class="bsg-image-container"></div>'),
+        var imgPopup = $('<div class="bsg-images-popup"><div class="bsg-images-undo-area">Image removed. <a class="bsg-undo-btn">Undo</a><i class="bsg-images-undo-area-close fa fa-times"></i></div><div class="bsg-images-container"></div></div>'),
             imgButton = $('<button type="button" class="bsg-formatting-btn bsg-images-dropdown"><i class="fa fa-picture-o"></i></button>'),
             storedImages = getStoredImages();
 
-        $('body').append(imgContainer);
+        $('body').append(imgPopup);
         commentTextareas.before(imgButton);
 
         for (var i=0; i<storedImages.length; i+=1) {
@@ -100,30 +101,55 @@
         }
 
         $(document).mouseup(function(e) {
-            if (!imgContainer.is(e.target) && imgContainer.has(e.target).length === 0) {
-                imgContainer.removeClass('m-shown');
+            if (!imgPopup.is(e.target) && imgPopup.has(e.target).length === 0) {
+                imgPopup.removeClass('m-shown');
             }
         });
         $('.bsg-images-dropdown').click(function() {
             var $this = $(this);
             targetTextarea = $this.siblings('textarea').eq(0);
-            imgContainer.toggleClass('m-shown');
-            imgContainer.css({
+            imgPopup.toggleClass('m-shown');
+            imgPopup.css({
                 'top': $this.offset().top - 300,
                 'left': $this.offset().left + 25
             });
         });
+        $('.bsg-undo-btn').click(undoRemovedImage);
+        $('.bsg-images-undo-area-close').click(abandonRemovedImage);
     }
     function addImage(imageUrl) {
-        var imgContainer = $('.bsg-image-container'),
-            imgElement = $('<div class="bsg-image-wrapper"><img class="bsg-image" src="' + imageUrl + '"/></div>');
+        var imgPopup = $('.bsg-images-popup'),
+            imgContainer = $('.bsg-images-container'),
+            imgElement = $('<div class="bsg-image-wrapper"><img class="bsg-image" src="' + imageUrl + '"/></div>'),
+            imgRemoveButton = $('<span class="bsg-image-remove-button"><i class="fa fa-times"></i></span>');
         imgElement.click(function() {
             insertToTextarea(targetTextarea, '![](', imageUrl, ')', function(textarea, textSelection) {
                 textarea.bsgSelectRange(textarea.val().length - imageUrl.length - 3);
             }, true);
-            imgContainer.toggleClass('m-shown');
+            imgPopup.toggleClass('m-shown');
         });
+        imgRemoveButton.click(function(event) {
+            event.stopPropagation();
+            removeImage(imgRemoveButton.prev().attr('src'));
+            imgRemoveButton.parent().remove();
+            $('.bsg-images-undo-area').addClass('m-shown');
+
+        });
+        imgElement.append(imgRemoveButton);
         imgContainer.append(imgElement);
+    }
+
+    function undoRemovedImage() {
+        if (lastRemovedImage) {
+            //TODO insert it in correct position (lastRemovedImage.index)
+            storeImage(lastRemovedImage.url);
+            addImage(lastRemovedImage.url);
+            abandonRemovedImage();
+        }
+    }
+    function abandonRemovedImage() {
+        $('.bsg-images-undo-area').removeClass('m-shown');
+        lastRemovedImage = undefined;
     }
 
     function handlePastedURL(e) {
@@ -145,7 +171,7 @@
                     textarea.bsgSelectRange(textSelection.start + (preChars.length === 3 ? 1 : 2));
                 });
                 storeImage(pastedData);
-                addImage(pastedData, textArea);
+                addImage(pastedData);
             }
         }
     }
@@ -228,6 +254,13 @@
         images.push(url);
         localStorage.setItem(storageImage, JSON.stringify(images));
     }
+    function removeImage(url) {
+        var images = getStoredImages(),
+            index = images.indexOf(url);
+        images.splice(index, 1);
+        lastRemovedImage = {index: index, url: url};
+        localStorage.setItem(storageImage, JSON.stringify(images));
+    }
     function getStoredImages() {
         return JSON.parse(localStorage.getItem(storageImage)) || defaultImages();
     }
@@ -290,10 +323,14 @@
         GM_addStyle('.bsg-formatting-btn.bsg-emojis-dropdown, .bsg-formatting-btn.bsg-images-dropdown {' +
                     'float: right;' +
                     '}');
-        GM_addStyle('.bsg-image-container {' +
-                    'font-size: 0;' +
+        GM_addStyle('.bsg-images-popup {' +
                     'display: none;' +
                     'position: absolute;' +
+                    'width: 320px;' +
+                    'height: 470px;' +
+                    '}');
+        GM_addStyle('.bsg-images-container {' +
+                    'font-size: 0;' +
                     'overflow-y: auto;' +
                     'width: 320px;' +
                     'height: 450px;' +
@@ -318,10 +355,11 @@
                     '}');
         GM_addStyle('.bsg-emoji {' +
                     '}');
-        GM_addStyle('.bsg-image-container.m-shown, .bsg-emoji-container.m-shown {' +
+        GM_addStyle('.bsg-images-popup.m-shown, .bsg-emoji-container.m-shown {' +
                     'display: block;' +
                     '}');
         GM_addStyle('.bsg-image-wrapper {' +
+                    'position: relative;' +
                     'display: inline-block;' +
                     'width: 150px;' +
                     'height: 150px;' +
@@ -329,6 +367,9 @@
                     'padding: 0;' +
                     'background: #fff;' +
                     'overflow: hidden;' +
+                    '}');
+        GM_addStyle('.bsg-image-wrapper:hover .bsg-image-remove-button {' +
+                    'display: block;' +
                     '}');
         GM_addStyle('.bsg-image {' +
                     'width: 150px;' +
@@ -345,7 +386,41 @@
                     '-webkit-transition: .3s ease-in-out;' +
                     'transition: .3s ease-in-out;' +
                     '}');
-        GM_addStyle('.bsg-image:hover {' +
+        GM_addStyle('.bsg-images-undo-area {' +
+                    'opacity: 0;' +
+                    'background-color: #ffd5d5;' +
+                    'height: 20px;' +
+                    'line-height: 20px;' +
+                    'padding-left: 5px;' +
+                    'padding-right: 5px;' +
+                    '}');
+        GM_addStyle('.bsg-images-undo-area.m-shown {' +
+                    'opacity: 1;' +
+                    '}');
+        GM_addStyle('.bsg-undo-btn {' +
+                    'cursor: pointer;' +
+                    'text-decoration: underline;' +
+                    '}');
+        GM_addStyle('.bsg-images-undo-area-close {' +
+                    'cursor: pointer;' +
+                    'float: right;' +
+                    'top: 2px;' +
+                    'position: relative;' +
+                    '}');
+        GM_addStyle('.bsg-image-remove-button {' +
+                    'display: none;' +
+                    'position: absolute;' +
+                    'right: 5px;' +
+                    'top: 5px;' +
+                    'color: black' +
+                    '}');
+        GM_addStyle('.bsg-image-remove-button > .fa {' +
+                    'font-size: 20px;' +
+                    '}');
+        GM_addStyle('.bsg-image-remove-button:hover > .fa {' +
+                    'color: red' +
+                    '}');
+        GM_addStyle('.bsg-image-wrapper:hover .bsg-image {' +
                     'height: 150px;' +
                     //rotate
                     //'-webkit-transform: rotate(0) scale(1);' +
