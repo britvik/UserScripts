@@ -1,19 +1,20 @@
 // ==UserScript==
 // @name         Steam DLC wishlister
-// @description  Adds all DLCs to wishlist
+// @description  Adds a button to put all DLCs on wishlist
 // @author       Bladito
-// @version      0.1
+// @version      0.2
 // @match        http://store.steampowered.com/app/*
 // @namespace    Bladito/steam-dlc-wishlister
 // @require      http://code.jquery.com/jquery-latest.js
+// @grant        GM_addStyle
 // ==/UserScript==
 
 (function($) {
     'use strict';
 
-    var wishlisterButton = $('<a class="btnv6_blue_blue_innerfade btn_medium"><span>Wishlist all</span></a>');
+    var wishlisterButton = $('<a class="btnv6_blue_blue_innerfade btn_medium"><span>Add all DLC to Wishlist</span></a>');
     wishlisterButton.click(addAllDlcsToWishlist);
-    $('.game_area_dlc_section').prepend(wishlisterButton);
+    $('#dlc_purchase_action').prepend(wishlisterButton);
 
     function addAllDlcsToWishlist() {
         $('.game_area_dlc_row').not('.ds_wishlist').each(function() {
