@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Auto mp3 downloader
-// @description  Automatic download of multiple mp3s from http://www.emp3z.com. Just insert list of songs (each on new line) into textarea, push the button and wait till it finishes.
+// @description  Automatic download of multiple mp3s from https://www.emp3z.com. Just insert list of songs into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.4
+// @version      0.5
 // @match        https://www.emp3z.com/*
 // @namespace    Bladito/auto-mp3-downloader
 // @grant        none
@@ -15,6 +15,8 @@
     var storageStateName = 'Bladito_autoDownloader_state';
     var storageNowFinding = 'Bladito_autoDownloader_nowFinding';
     var storageDebugName = 'Bladito_autoDownloader_isDebug';
+
+    var artistAndSongOnSeparateLines = false;
 
     var STATE = {
         IDLE:'IDLE',
@@ -69,20 +71,20 @@
     }
 
     function findDownloadUrls() {
-        var mp3List, textAreaVal = $('#my-dl-list').val();
-
-        if (textAreaVal && textAreaVal.length > 0) {
+        var textAreaVal = $('#my-dl-list').val(),
             mp3List = prepareMp3List(textAreaVal);
 
-            setMp3List(mp3List);
-            setState(STATE.FINDING_URLS);
-
-            log('to dl ', JSON.stringify(mp3List));
-
-            findUrlForNextSong();
-        } else {
-            alert('No songs inserted into textarea!');
+        if (typeof mp3List === 'string') {
+            showError(mp3List);
+            return;
         }
+
+        setMp3List(mp3List);
+        setState(STATE.FINDING_URLS);
+
+        log('to dl ', JSON.stringify(mp3List));
+
+        findUrlForNextSong();
     }
 
     function findUrlForNextSong() {
@@ -129,13 +131,29 @@
     }
 
     function prepareMp3List(mp3listString) {
-        var result = [],
-            list = mp3listString.split('\n');
+        var i, list, result = [];
 
-        for (var i=0; i<list.length; i+=1) {
-            result.push({
-                name: list[i]
-            });
+        if (!mp3listString || mp3listString.length === 0) {
+            return 'EMPTY_INPUT';
+        }
+
+        list = mp3listString.split('\n');
+
+        if (artistAndSongOnSeparateLines) {
+            if (list.length % 2 !== 0) {
+                return 'ODD_NUMBER';
+            }
+            for (i=1; i<list.length; i+=2) {
+                result.push({
+                    name: list[i-1] + ' ' + list[i]
+                });
+            }
+        } else {
+            for (i=0; i<list.length; i+=1) {
+                result.push({
+                    name: list[i]
+                });
+            }
         }
 
         return result;
@@ -182,11 +200,30 @@
             '<span class="input-group-btn" style="vertical-align: top;">' +
             '<button id="my-btn" class="btn btn-primary" style="height: 100%; min-height: 120px; border: none; padding: 0 14px;">Auto Download</button>' +
             '</span>' +
+            '</div>' +
+            '<div class="input-group col-lg-8" style="text-align: left;">' +
+            '<label><input type="checkbox" id="bladito-input-mode" style="margin: 0 2px 0 0; vertical-align: text-top;">Artist and song on separate lines</label>' +
             '</div>'
         ;
 
         searchForm.append(customElements);
         $('#my-btn').click(findDownloadUrls);
+        $('#bladito-input-mode').click(function() {
+            artistAndSongOnSeparateLines = $(this).is(':checked');
+        });
+    }
+
+    function showError(errCode) {
+        var searchForm = $('form[action^="/search"]');
+        $('#bladito-error-message').remove();
+
+        if (errCode === 'ODD_NUMBER') {
+            searchForm.prepend('<div id="bladito-error-message" class="input-group col-lg-12" style="height: 50px; line-height: 50px; margin-top: 15px; margin-bottom: 15px; color: white; background-color: #d64747;">'+
+                               'You inserted ODD number of lines. Unable to continue.</div>');
+        } else if (errCode === 'EMPTY_INPUT') {
+            searchForm.prepend('<div id="bladito-error-message" class="input-group col-lg-12" style="height: 50px; line-height: 50px; margin-top: 15px; margin-bottom: 15px; color: white; background-color: #d64747;">'+
+                               'No songs inserted into textarea!</div>');
+        }
     }
 
     function printResults(isOldResult) {
