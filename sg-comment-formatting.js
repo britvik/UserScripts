@@ -2,7 +2,9 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.4
+// @version      0.5
+// @homepageURL  https://github.com/britvik/UserScripts
+// @updateURL    https://raw.githubusercontent.com/britvik/UserScripts/master/sg-comment-formatting.js
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
 // @require      http://code.jquery.com/jquery-latest.js
@@ -375,12 +377,6 @@
                     'width: 150px;' +
                     'height: 150px;' +
                     'cursor: pointer;' +
-                    //rotate
-                    //'-webkit-transform: rotate(15deg) scale(1.4);' +
-                    //'transform: rotate(15deg) scale(1.4);' +
-                    //'-webkit-transition: .3s ease-in-out;' +
-                    //'transition: .3s ease-in-out;' +
-                    //zoom in
                     '-webkit-transform: scale(1);' +
                     'transform: scale(1);' +
                     '-webkit-transition: .3s ease-in-out;' +
@@ -422,10 +418,6 @@
                     '}');
         GM_addStyle('.bsg-image-wrapper:hover .bsg-image {' +
                     'height: 150px;' +
-                    //rotate
-                    //'-webkit-transform: rotate(0) scale(1);' +
-                    //'transform: rotate(0) scale(1);' +
-                    //zoom in
                     '-webkit-transform: scale(1.3);' +
                     'transform: scale(1.3);' +
                     '}');
