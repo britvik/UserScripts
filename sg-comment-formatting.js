@@ -2,9 +2,8 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.5
-// @homepageURL  https://github.com/britvik/UserScripts
-// @updateURL    https://raw.githubusercontent.com/britvik/UserScripts/master/sg-comment-formatting.js
+// @version      0.6
+// @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
 // @require      http://code.jquery.com/jquery-latest.js
