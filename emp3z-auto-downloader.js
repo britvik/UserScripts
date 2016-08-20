@@ -2,8 +2,9 @@
 // @name         Auto mp3 downloader
 // @description  Automatic download of multiple mp3s from https://www.emp3z.com. Just insert list of songs into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.5
-// @match        https://www.emp3z.com/*
+// @version      0.6
+// @homepageURL  https://greasyfork.org/en/users/55159-bladito
+// @match        http://www.emp3x.ws/*
 // @namespace    Bladito/auto-mp3-downloader
 // @grant        none
 // ==/UserScript==
