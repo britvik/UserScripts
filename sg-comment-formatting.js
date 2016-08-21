@@ -2,7 +2,7 @@
 // @name         SteamGifts comment formatting
 // @description  Adds some buttons to help you with formatting your comments.
 // @author       Bladito
-// @version      0.6
+// @version      0.6.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
@@ -292,12 +292,22 @@
             '( ͡⊙ ͜ʖ ͡⊙)',
             '(ノಠ益ಠ)ノ',
             '(╯°□°）╯︵ ┻━┻',
+            '┬─┬ノ( º _ ºノ)',
             'ლ(ಠ益ಠლ)',
             '(◕‿-)✌',
             '(ಠ_ಠ)',
             '(¬､¬)',
             '(─‿‿─)',
-            '(ಥ﹏ಥ)'
+            '(ಥ﹏ಥ)',
+            '(▰˘◡˘▰)',
+            '乁( ◔ ౪◔)ㄏ',
+            '(ง ͠° ͟ʖ ͡°)ง',
+            'ζ༼Ɵ͆ل͜Ɵ͆༽ᶘ',
+            'ʕ•ᴥ•ʔ',
+            '( ͝° ͜ʖ͡°)',
+            '(/ﾟДﾟ)/',
+            '୧༼ಠ益ಠ༽୨',
+            '(ง •̀_•́)ง'
         ];
     }
 
