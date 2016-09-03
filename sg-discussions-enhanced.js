@@ -1,8 +1,9 @@
 // ==UserScript==
-// @name         SG discussions enhanced
+// @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.9
+// @version      0.9.1
+// @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
@@ -32,7 +33,7 @@
     //-------------------------------------------------------------------------------------------------------------------------------------------------
 
     function matchDiscussion(url) {
-        return url.match(/.*\/discussion\/(.*)\/(.*)/);
+        return url.match(/.*\/discussion\/([a-zA-Z0-9]{5})\/([^#\/]+)/);
     }
 
     function rememberReadDiscussion(discussionMatch) {
