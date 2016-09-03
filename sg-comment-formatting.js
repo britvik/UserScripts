@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         SteamGifts comment formatting
-// @description  Adds some buttons to help you with formatting your comments.
+// @description  Adds buttons to help you with formatting your comments and managing pictures and emoticons.
 // @author       Bladito
-// @version      0.6.1
+// @version      0.7.0
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
@@ -17,7 +17,7 @@
     var storageEmojis = 'Bladito_sg_comments_emojis';
     var commentTextareas = $('textarea[name="description"]');
     var targetTextarea; //textarea used for inserting images/emojis
-    var lastRemovedImage;
+    var lastRemovedImage, lastRemovedEmoji;
 
     if (commentTextareas.length) {
         enrichJquery();
@@ -51,11 +51,17 @@
     }
 
     function addEmojis() {
-        var emojiContainer = $('<div class="bsg-emoji-container"></div>'),
+        var emojiPopup = $('<div class="bsg-emojis-popup">'+
+                           '<div class="bsg-emojis-undo-area">Emoji removed. <a class="bsg-undo-emoji-btn">Undo</a><i class="bsg-emojis-undo-area-close fa fa-times"></i></div>' +
+                           '<div class="bsg-emojis-add-area">' +
+                           '<input class="bsg-add-emoji-input" placeholder="Add new Emoji here..."/>' +
+                           '<button class="bsg-add-emoji-btn" type="button"><i class="fa fa-plus"></i></button>' +
+                           '</div>' +
+                           '<div class="bsg-emojis-container"></div></div>'),
             emojiButton = $('<button type="button" class="bsg-formatting-btn bsg-emojis-dropdown"><i class="fa fa-smile-o"></i></button>'),
             storedEmojis = getStoredEmojis();
 
-        $('body').append(emojiContainer);
+        $('body').append(emojiPopup);
         commentTextareas.before(emojiButton);
 
         for (var i=0; i<storedEmojis.length; i+=1) {
@@ -63,34 +69,64 @@
         }
 
         $(document).mouseup(function(e) {
-            if (!emojiContainer.is(e.target) && emojiContainer.has(e.target).length === 0) {
-                emojiContainer.removeClass('m-shown');
+            if (!emojiPopup.is(e.target) && emojiPopup.has(e.target).length === 0) {
+                emojiPopup.removeClass('m-shown');
             }
         });
         $('.bsg-emojis-dropdown').click(function() {
             var $this = $(this);
             targetTextarea = $this.siblings('textarea').eq(0);
-            emojiContainer.toggleClass('m-shown');
-            emojiContainer.css({
+            emojiPopup.toggleClass('m-shown');
+            emojiPopup.css({
                 'top': $this.offset().top - 300,
                 'left': $this.offset().left + 25
             });
         });
+        $('.bsg-add-emoji-input').on('keypress', function(e) {
+            if(e.which === 13){
+                addNewUserEmoji();
+            }
+        });
+        $('.bsg-add-emoji-btn').click(addNewUserEmoji);
+        $('.bsg-undo-emoji-btn').click(undoRemovedEmoji);
+        $('.bsg-emojis-undo-area-close').click(abandonRemovedEmoji);
     }
+
+    function addNewUserEmoji() {
+        var addEmojiInput = $('.bsg-add-emoji-input');
+        var newEmoji = addEmojiInput.val();
+
+        if (newEmoji && newEmoji.length > 0) {
+            storeEmoji(newEmoji);
+            addEmoji(newEmoji);
+            addEmojiInput.val('');
+            $('.bsg-emojis-container').scrollTop($('.bsg-emojis-container')[0].scrollHeight);
+        }
+    }
+
     function addEmoji(emojiString) {
-        var emojiContainer = $('.bsg-emoji-container'),
-            emojiElement = $('<div class="bsg-emoji-wrapper"><span class="bsg-emoji">' + emojiString + '</span></div>');
+        var emojiPopup = $('.bsg-emojis-popup'),
+            emojiContainer = $('.bsg-emojis-container'),
+            emojiElement = $('<div class="bsg-emoji-wrapper"><span class="bsg-emoji">' + emojiString + '</span></div>'),
+            emojiRemoveButton = $('<span class="bsg-emoji-remove-button"><i class="fa fa-times"></i></span>');
         emojiElement.click(function() {
             insertToTextarea(targetTextarea, '', normalizeEmoji(emojiString), '', function(textarea, textSelection) {
                 textarea.bsgSelectRange(textSelection.start + emojiString.length);
             });
-            emojiContainer.toggleClass('m-shown');
+            emojiPopup.toggleClass('m-shown');
         });
+        emojiRemoveButton.click(function(event) {
+            event.stopPropagation();
+            removeEmoji(emojiRemoveButton.prev().text());
+            emojiRemoveButton.parent().remove();
+            $('.bsg-emojis-undo-area').addClass('m-shown');
+        });
+        emojiElement.append(emojiRemoveButton);
         emojiContainer.append(emojiElement);
     }
 
     function addImages() {
-        var imgPopup = $('<div class="bsg-images-popup"><div class="bsg-images-undo-area">Image removed. <a class="bsg-undo-btn">Undo</a><i class="bsg-images-undo-area-close fa fa-times"></i></div><div class="bsg-images-container"></div></div>'),
+        var imgPopup = $('<div class="bsg-images-popup"><div class="bsg-images-undo-area">Image removed. <a class="bsg-undo-image-btn">Undo</a><i class="bsg-images-undo-area-close fa fa-times"></i></div><div class="bsg-images-container"></div></div>'),
             imgButton = $('<button type="button" class="bsg-formatting-btn bsg-images-dropdown"><i class="fa fa-picture-o"></i></button>'),
             storedImages = getStoredImages();
 
@@ -115,7 +151,7 @@
                 'left': $this.offset().left + 25
             });
         });
-        $('.bsg-undo-btn').click(undoRemovedImage);
+        $('.bsg-undo-image-btn').click(undoRemovedImage);
         $('.bsg-images-undo-area-close').click(abandonRemovedImage);
     }
     function addImage(imageUrl) {
@@ -151,6 +187,19 @@
     function abandonRemovedImage() {
         $('.bsg-images-undo-area').removeClass('m-shown');
         lastRemovedImage = undefined;
+    }
+
+    function undoRemovedEmoji() {
+        if (lastRemovedEmoji) {
+            //TODO insert it in correct position (lastRemovedEmoji.index)
+            storeEmoji(lastRemovedEmoji.text);
+            addEmoji(lastRemovedEmoji.text);
+            abandonRemovedEmoji();
+        }
+    }
+    function abandonRemovedEmoji() {
+        $('.bsg-emojis-undo-area').removeClass('m-shown');
+        lastRemovedEmoji = undefined;
     }
 
     function handlePastedURL(e) {
@@ -269,7 +318,14 @@
     function storeEmoji(emojiString) {
         var emojis = getStoredEmojis();
         emojis.push(emojiString);
-        localStorage.setItem(storageEmojis, JSON.stringify(emojiString));
+        localStorage.setItem(storageEmojis, JSON.stringify(emojis));
+    }
+    function removeEmoji(emojiString) {
+        var emojis = getStoredEmojis(),
+            index = emojis.indexOf(emojiString);
+        emojis.splice(index, 1);
+        lastRemovedEmoji = {index: index, text: emojiString};
+        localStorage.setItem(storageEmojis, JSON.stringify(emojis));
     }
     function getStoredEmojis() {
         return JSON.parse(localStorage.getItem(storageEmojis)) || defaultEmojis();
@@ -277,6 +333,7 @@
 
     function defaultImages() {
         return [
+            'https://i.imgflip.com/cnudu.jpg',
             'https://s-media-cache-ak0.pinimg.com/564x/9c/76/1f/9c761ffd187eef6e11e28188a6ff7075.jpg',
             'http://webtrax.hu/myfacewhen/faces/animals/kitty-facepalm.jpg',
             'http://www.getcatnipdaily.com/wp-content/uploads/sites/713/2015/05/4Kitty-barlow-250x200.jpg',
@@ -295,10 +352,16 @@
             '┬─┬ノ( º _ ºノ)',
             'ლ(ಠ益ಠლ)',
             '(◕‿-)✌',
+            '(｡◕‿◕｡)',
+            '(◑‿◐)',
+            '◔_◔',
+            '(•‿•)',
             '(ಠ_ಠ)',
             '(¬､¬)',
             '(─‿‿─)',
             '(ಥ﹏ಥ)',
+            '(ಥ‸ಥ)',
+            '(⌐■_■)',
             '(▰˘◡˘▰)',
             '乁( ◔ ౪◔)ㄏ',
             '(ง ͠° ͟ʖ ͡°)ง',
@@ -316,14 +379,14 @@
                     'display: inline-block;' +
                     'margin: 1px;' +
                     'border: 1px solid #d6d6d6;' +
-                    'font: 700 13px/20px "Open Sans",sans-serif;' +
                     'cursor: pointer;' +
                     'text-align: center;' +
                     'border-radius: 4px;' +
                     'background-color: #f3f3f3;' +
                     'background-image: none;' +
                     'color: #757575;' +
-                    'width: 22px;' +
+                    'min-width: 22px;' +
+                    'height: 22px;' +
                     '}');
         GM_addStyle('.bsg-formatting-btn:hover {' +
                     'border-color: #B9D393 #96BC69 #73A442 #A0C870;' +
@@ -337,39 +400,71 @@
         GM_addStyle('.bsg-images-popup {' +
                     'display: none;' +
                     'position: absolute;' +
-                    'width: 320px;' +
+                    'width: 317px;' +
                     'height: 470px;' +
                     '}');
         GM_addStyle('.bsg-images-container {' +
                     'font-size: 0;' +
                     'overflow-y: auto;' +
-                    'width: 320px;' +
                     'height: 450px;' +
+                    'background: repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px);' +
                     '}');
-        GM_addStyle('.bsg-emoji-container {' +
+        GM_addStyle('.bsg-emojis-popup {' +
                     'display: none;' +
                     'position: absolute;' +
-                    'overflow-y: auto;' +
-                    'height: 450px;' +
+                    'height: 490px;' +
+                    'min-width: 160px;' +
+                    'max-width: 320px;' +
                     'color: black;' +
                     '}');
+        GM_addStyle('.bsg-emojis-container {' +
+                    'overflow-y: auto;' +
+                    'height: 420px;' +
+                    'background: repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px);' +
+                    '}');
         GM_addStyle('.bsg-emoji-wrapper {' +
+                    'position: relative;' +
                     'display: block;' +
                     'margin: 0;' +
                     'padding: 5px;' +
                     'background: #fff;' +
                     'cursor: pointer;' +
                     'overflow: hidden;' +
+                    'min-height: 17px;' +
+                    'text-align: center;' +
                     '}');
         GM_addStyle('.bsg-emoji-wrapper:hover {' +
                     'background: #e8eeff;' +
                     '}');
-        GM_addStyle('.bsg-emoji {' +
+        GM_addStyle('.bsg-emoji-wrapper:hover .bsg-emoji-remove-button {' +
+                    'display: block;' +
                     '}');
-        GM_addStyle('.bsg-images-popup.m-shown, .bsg-emoji-container.m-shown {' +
+        GM_addStyle('.bsg-emojis-add-area {' +
+                    'display: flex;' +
+                    '}');
+        GM_addStyle('input.bsg-add-emoji-input {' +
+                    'border-left-width: 0;' +
+                    'border-right-width: 0;' +
+                    'border-radius: 0;' +
+                    'flex: 1' +
+                    '}');
+        GM_addStyle('.bsg-add-emoji-btn {' +
+                    'cursor: pointer;' +
+                    'width: 17px;' +
+                    'color: #545454;' +
+                    'background-color: #dddddd;' +
+                    '}');
+        GM_addStyle('.bsg-add-emoji-btn:hover {' +
+                    'border-color: #B9D393 #96BC69 #73A442 #A0C870;' +
+                    'background-image: linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
+                    'background-image: -moz-linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
+                    'background-image: -webkit-linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
+                    '}');
+        GM_addStyle('.bsg-images-popup.m-shown, .bsg-emojis-popup.m-shown {' +
                     'display: block;' +
                     '}');
         GM_addStyle('.bsg-image-wrapper {' +
+                    'cursor: pointer;' +
                     'position: relative;' +
                     'display: inline-block;' +
                     'width: 150px;' +
@@ -385,13 +480,12 @@
         GM_addStyle('.bsg-image {' +
                     'width: 150px;' +
                     'height: 150px;' +
-                    'cursor: pointer;' +
                     '-webkit-transform: scale(1);' +
                     'transform: scale(1);' +
                     '-webkit-transition: .3s ease-in-out;' +
                     'transition: .3s ease-in-out;' +
                     '}');
-        GM_addStyle('.bsg-images-undo-area {' +
+        GM_addStyle('.bsg-images-undo-area, .bsg-emojis-undo-area {' +
                     'opacity: 0;' +
                     'background-color: #ffd5d5;' +
                     'height: 20px;' +
@@ -399,20 +493,20 @@
                     'padding-left: 5px;' +
                     'padding-right: 5px;' +
                     '}');
-        GM_addStyle('.bsg-images-undo-area.m-shown {' +
+        GM_addStyle('.bsg-images-undo-area.m-shown, .bsg-emojis-undo-area.m-shown {' +
                     'opacity: 1;' +
                     '}');
-        GM_addStyle('.bsg-undo-btn {' +
+        GM_addStyle('.bsg-undo-image-btn, .bsg-undo-emoji-btn {' +
                     'cursor: pointer;' +
                     'text-decoration: underline;' +
                     '}');
-        GM_addStyle('.bsg-images-undo-area-close {' +
+        GM_addStyle('.bsg-images-undo-area-close, .bsg-emojis-undo-area-close {' +
                     'cursor: pointer;' +
                     'float: right;' +
                     'top: 2px;' +
                     'position: relative;' +
                     '}');
-        GM_addStyle('.bsg-image-remove-button {' +
+        GM_addStyle('.bsg-image-remove-button, .bsg-emoji-remove-button {' +
                     'display: none;' +
                     'position: absolute;' +
                     'right: 5px;' +
@@ -422,7 +516,11 @@
         GM_addStyle('.bsg-image-remove-button > .fa {' +
                     'font-size: 20px;' +
                     '}');
-        GM_addStyle('.bsg-image-remove-button:hover > .fa {' +
+        GM_addStyle('.bsg-emoji-remove-button > .fa {' +
+                    'font-size: 15px;' +
+                    'color: #b7b7b7;' +
+                    '}');
+        GM_addStyle('.bsg-image-remove-button:hover > .fa, .bsg-emoji-remove-button:hover > .fa {' +
                     'color: red' +
                     '}');
         GM_addStyle('.bsg-image-wrapper:hover .bsg-image {' +
