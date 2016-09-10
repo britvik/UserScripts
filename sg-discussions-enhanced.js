@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.9.1
+// @version      0.9.2
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
@@ -247,7 +247,10 @@
     function doSort(attributeSelector, normalizer) {
         var sortingBy = getSorting();
 
-        $('.table__row-outer-wrap').sort(function (a, b) {
+        // don't sort pinned discussions
+        $('.table__row-outer-wrap').filter(function() {
+            return $(this).find('.fa-long-arrow-right').length === 0;
+        }).sort(function (a, b) {
             var first = normalizer($(a).find(attributeSelector).text());
             var second = normalizer($(b).find(attributeSelector).text());
             var result;
