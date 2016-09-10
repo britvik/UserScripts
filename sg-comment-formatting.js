@@ -2,7 +2,7 @@
 // @name         SteamGifts comment formatting
 // @description  Adds buttons to help you with formatting your comments and managing pictures and emoticons.
 // @author       Bladito
-// @version      0.7.0
+// @version      0.7.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-comment-formatting
@@ -76,11 +76,7 @@
         $('.bsg-emojis-dropdown').click(function() {
             var $this = $(this);
             targetTextarea = $this.siblings('textarea').eq(0);
-            emojiPopup.toggleClass('m-shown');
-            emojiPopup.css({
-                'top': $this.offset().top - 300,
-                'left': $this.offset().left + 25
-            });
+            positionAndShowPopup(emojiPopup, $this);
         });
         $('.bsg-add-emoji-input').on('keypress', function(e) {
             if(e.which === 13){
@@ -126,7 +122,13 @@
     }
 
     function addImages() {
-        var imgPopup = $('<div class="bsg-images-popup"><div class="bsg-images-undo-area">Image removed. <a class="bsg-undo-image-btn">Undo</a><i class="bsg-images-undo-area-close fa fa-times"></i></div><div class="bsg-images-container"></div></div>'),
+        var imgPopup = $('<div class="bsg-images-popup">' +
+                         '<div class="bsg-images-undo-area">Image removed. <a class="bsg-undo-image-btn">Undo</a><i class="bsg-images-undo-area-close fa fa-times"></i></div>' +
+                         '<div class="bsg-images-add-area">' +
+                         '<input class="bsg-add-image-input" placeholder="Add new Image url here..."/>' +
+                         '<button class="bsg-add-image-btn" type="button"><i class="fa fa-plus"></i></button>' +
+                         '</div>' +
+                         '<div class="bsg-images-container"></div></div>'),
             imgButton = $('<button type="button" class="bsg-formatting-btn bsg-images-dropdown"><i class="fa fa-picture-o"></i></button>'),
             storedImages = getStoredImages();
 
@@ -145,15 +147,30 @@
         $('.bsg-images-dropdown').click(function() {
             var $this = $(this);
             targetTextarea = $this.siblings('textarea').eq(0);
-            imgPopup.toggleClass('m-shown');
-            imgPopup.css({
-                'top': $this.offset().top - 300,
-                'left': $this.offset().left + 25
-            });
+            positionAndShowPopup(imgPopup, $this);
         });
+        $('.bsg-add-image-input').on('keypress', function(e) {
+            if(e.which === 13){
+                addNewUserImage();
+            }
+        });
+        $('.bsg-add-image-btn').click(addNewUserImage);
         $('.bsg-undo-image-btn').click(undoRemovedImage);
         $('.bsg-images-undo-area-close').click(abandonRemovedImage);
     }
+
+    function addNewUserImage() {
+        var addImageInput = $('.bsg-add-image-input');
+        var newImage = addImageInput.val();
+
+        if (newImage && newImage.length > 0) {
+            storeImage(newImage);
+            addImage(newImage);
+            addImageInput.val('');
+            $('.bsg-images-container').scrollTop($('.bsg-images-container')[0].scrollHeight);
+        }
+    }
+
     function addImage(imageUrl) {
         var imgPopup = $('.bsg-images-popup'),
             imgContainer = $('.bsg-images-container'),
@@ -202,27 +219,45 @@
         lastRemovedEmoji = undefined;
     }
 
+    function positionAndShowPopup(popupElement, triggerElement) {
+        var buttonWidth = 22,
+            left = triggerElement.offset().left + buttonWidth;
+
+        if (left + popupElement.width() > document.documentElement.clientWidth) {
+            left = left - buttonWidth - popupElement.width();
+        }
+        popupElement.toggleClass('m-shown');
+        popupElement.css({
+            'top': triggerElement.offset().top - 306,
+            'left': left
+        });
+    }
+
     function handlePastedURL(e) {
-        var preChars,
+        var preChars = '[](',
             textArea = $(e.target),
             pastedData = (e.originalEvent || e).clipboardData.getData('text/plain');
 
-        if (pastedData) {
-            if (/^https?:\/\/(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:\/[^/#?]+)+/i.test(pastedData)) {
-                preChars = '[](';
-                if (/^.*\.(?:jpe?g|gif|png)$/i.test(pastedData)) {
+        if (pastedData && /^https?:\/\/(?:[a-z0-9\-]+\.)+[a-z]{2,6}(?:\/[^/#?]+)+/i.test(pastedData)) {
+            isValidImageUrl(pastedData, function(isImage) {
+                if (isImage) {
                     preChars = '!' + preChars;
+                    storeImage(pastedData);
+                    addImage(pastedData);
                 }
-            }
-            if (preChars) {
-                e.stopPropagation();
-                e.preventDefault();
                 insertToTextarea(textArea, preChars, pastedData, ')', function(textarea, textSelection) {
                     textarea.bsgSelectRange(textSelection.start + (preChars.length === 3 ? 1 : 2));
                 });
-                storeImage(pastedData);
-                addImage(pastedData);
-            }
+            });
+            e.stopPropagation();
+            e.preventDefault();
+        }
+
+        function isValidImageUrl(url, callback) {
+            var img = new Image();
+            img.onerror = function() { callback(false); };
+            img.onload =  function() { callback(true); };
+            img.src = url;
         }
     }
 
@@ -401,7 +436,7 @@
                     'display: none;' +
                     'position: absolute;' +
                     'width: 317px;' +
-                    'height: 470px;' +
+                    'height: 500px;' +
                     '}');
         GM_addStyle('.bsg-images-container {' +
                     'font-size: 0;' +
@@ -412,7 +447,7 @@
         GM_addStyle('.bsg-emojis-popup {' +
                     'display: none;' +
                     'position: absolute;' +
-                    'height: 490px;' +
+                    'height: 470px;' +
                     'min-width: 160px;' +
                     'max-width: 320px;' +
                     'color: black;' +
@@ -439,22 +474,22 @@
         GM_addStyle('.bsg-emoji-wrapper:hover .bsg-emoji-remove-button {' +
                     'display: block;' +
                     '}');
-        GM_addStyle('.bsg-emojis-add-area {' +
+        GM_addStyle('.bsg-emojis-add-area, .bsg-images-add-area {' +
                     'display: flex;' +
                     '}');
-        GM_addStyle('input.bsg-add-emoji-input {' +
+        GM_addStyle('input.bsg-add-emoji-input, input.bsg-add-image-input {' +
                     'border-left-width: 0;' +
                     'border-right-width: 0;' +
                     'border-radius: 0;' +
                     'flex: 1' +
                     '}');
-        GM_addStyle('.bsg-add-emoji-btn {' +
+        GM_addStyle('.bsg-add-emoji-btn, .bsg-add-image-btn {' +
                     'cursor: pointer;' +
                     'width: 17px;' +
                     'color: #545454;' +
                     'background-color: #dddddd;' +
                     '}');
-        GM_addStyle('.bsg-add-emoji-btn:hover {' +
+        GM_addStyle('.bsg-add-emoji-btn:hover, .bsg-add-image-btn:hover {' +
                     'border-color: #B9D393 #96BC69 #73A442 #A0C870;' +
                     'background-image: linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
                     'background-image: -moz-linear-gradient(#cef2aa 0%, #b4e08a 50%, #9AC96A 100%);' +
