@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.9.2
+// @version      0.9.3
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
@@ -251,13 +251,25 @@
         $('.table__row-outer-wrap').filter(function() {
             return $(this).find('.fa-long-arrow-right').length === 0;
         }).sort(function (a, b) {
+            //debugger;
             var first = normalizer($(a).find(attributeSelector).text());
             var second = normalizer($(b).find(attributeSelector).text());
             var result;
-            result = first < second ? -1 : (first > second ? 1 : 0);
-            if (sortingBy[0] === '-') {
-                result *= -1;
+
+            //no value always on the bottom
+            if (first === null && second === null) {
+                result = 0;
+            } else if (first === null) {
+                result = 1;
+            } else if (second === null) {
+                result = -1;
+            } else {
+                result = first < second ? -1 : (first > second ? 1 : 0);
+                if (sortingBy[0] === '-') {
+                    result *= -1;
+                }
             }
+
             return result;
         }).appendTo(".table__rows");
     }
@@ -296,7 +308,7 @@
         if (creationDateAsText.indexOf('year') > -1) {
             return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4 * 12;
         }
-        return 0;
+        return null;
     }
 
     function clearSorting() {
