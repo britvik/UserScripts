@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.9.3
+// @version      0.9.4
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
@@ -244,30 +244,20 @@
         return sortingBy;
     }
 
-    function doSort(attributeSelector, normalizer) {
+    function doSort(attributeSelector, normalizer, alternativeSelector) {
         var sortingBy = getSorting();
 
         // don't sort pinned discussions
         $('.table__row-outer-wrap').filter(function() {
             return $(this).find('.fa-long-arrow-right').length === 0;
         }).sort(function (a, b) {
-            //debugger;
-            var first = normalizer($(a).find(attributeSelector).text());
-            var second = normalizer($(b).find(attributeSelector).text());
+            var first = normalizer($(a).find(attributeSelector).text(), $(a).find(alternativeSelector).text());
+            var second = normalizer($(b).find(attributeSelector).text(), $(b).find(alternativeSelector).text());
             var result;
 
-            //no value always on the bottom
-            if (first === null && second === null) {
-                result = 0;
-            } else if (first === null) {
-                result = 1;
-            } else if (second === null) {
-                result = -1;
-            } else {
-                result = first < second ? -1 : (first > second ? 1 : 0);
-                if (sortingBy[0] === '-') {
-                    result *= -1;
-                }
+            result = first < second ? -1 : (first > second ? 1 : 0);
+            if (sortingBy[0] === '-') {
+                result *= -1;
             }
 
             return result;
@@ -278,7 +268,8 @@
         doSort('.table__row-inner-wrap > .table__column--width-fill > p > span', getNormlizedTime);
     }
     function sortByLastPost() {
-        doSort('.table__row-inner-wrap > .table__column--last-comment p > span', getNormlizedTime);
+        doSort('.table__row-inner-wrap > .table__column--last-comment p > span', getLastPostOrCreationDateTime,
+               '.table__row-inner-wrap > .table__column--width-fill > p > span');
     }
     function sortByComments() {
         doSort('.table__column--width-small a', function(commentCountAsText) {
@@ -286,29 +277,37 @@
         });
     }
 
-    function getNormlizedTime(creationDateAsText) {
-        if (creationDateAsText.indexOf('second') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000;
+    function getNormlizedTime(dateAsText) {
+        if (dateAsText.indexOf('second') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000;
         }
-        if (creationDateAsText.indexOf('minute') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60;
+        if (dateAsText.indexOf('minute') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60;
         }
-        if (creationDateAsText.indexOf('hour') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60;
+        if (dateAsText.indexOf('hour') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60;
         }
-        if (creationDateAsText.indexOf('day') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24;
+        if (dateAsText.indexOf('day') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24;
         }
-        if (creationDateAsText.indexOf('week') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7;
+        if (dateAsText.indexOf('week') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7;
         }
-        if (creationDateAsText.indexOf('month') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4;
+        if (dateAsText.indexOf('month') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4;
         }
-        if (creationDateAsText.indexOf('year') > -1) {
-            return +creationDateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4 * 12;
+        if (dateAsText.indexOf('year') > -1) {
+            return +dateAsText.replace(/[^\d]/g, '') * 1000 * 60 * 60 * 24 * 7 * 4 * 12;
         }
         return null;
+    }
+
+    function getLastPostOrCreationDateTime(lastPostDateText, creationDateText) {
+        var lastPostTime = getNormlizedTime(lastPostDateText);
+        if (lastPostTime !== null) {
+            return lastPostTime;
+        }
+        return getNormlizedTime(creationDateText);
     }
 
     function clearSorting() {
