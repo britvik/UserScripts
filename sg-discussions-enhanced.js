@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.9.4
+// @version      0.10.0
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/discussion*
 // @namespace    Bladito/sg-discussions
@@ -36,10 +36,10 @@
         return url.match(/.*\/discussion\/([a-zA-Z0-9]{5})\/([^#\/]+)/);
     }
 
-    function rememberReadDiscussion(discussionMatch) {
+    function rememberReadDiscussion(discussionMatch, commentsCount) {
         var discussion = {
             name: discussionMatch[2],
-            comments: getCommentsCount(),
+            comments: commentsCount !== undefined ? commentsCount : getCommentsCount(),
             time: new Date().getTime()
         };
         addReadDiscussion(discussionMatch[1], discussion);
@@ -54,16 +54,21 @@
     }
 
     function markReadDiscussions() {
-        var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, $commentsCountElement, commentsCount, newCommentsCount, originalPoster,
+        var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, originalPoster,
             readDiscussion, readDiscussions = getReadDiscussions(), stalkedUsers = getStalkedUsers(), markedDiscussions = getMarkedDiscussions();
 
         $('a.table__column__heading').each(function() {
             $this = $(this);
             $outerWrap = $this.closest('.table__row-outer-wrap');
+            $buttonsWrap = $('<div class="action-btns-wrap"></div>');
+            $outerWrap.prepend($buttonsWrap);
+
             linkDiscussionMatch = matchDiscussion(this.href);
             readDiscussion = readDiscussions[linkDiscussionMatch[1]];
 
             if (readDiscussion) { //we have read this discussion already
+                var $commentsCountElement, commentsCount, newCommentsCount;
+
                 $outerWrap.addClass('bsg-discussion-read');
                 if (readDiscussion.name !== linkDiscussionMatch[2]) { //OP changed discussion name
                     $this.addClass('bsg-discussion-title-changed');
@@ -75,17 +80,18 @@
                     newCommentsCount = commentsCount - readDiscussion.comments;
                     $commentsCountElement.after('<span class="'+getClassesForNewComments(newCommentsCount)+'">(+'+newCommentsCount+')</span>');
                 }
+
+                addUnreadButton($buttonsWrap, $outerWrap, $this, linkDiscussionMatch);
+            } else {
+                addReadButton($buttonsWrap, $outerWrap, $this, linkDiscussionMatch);
             }
+
             originalPoster = $outerWrap.find('.table__column--width-fill .table__column__secondary-link:eq(1)').text();
-
-            $buttonsWrap = $('<div class="action-btns-wrap"></div>');
-            $outerWrap.prepend($buttonsWrap);
-
             if (stalkedUsers.indexOf(originalPoster) > -1) {
                 markPostOfStalkedUser($outerWrap);
-                addUnstalkButton($buttonsWrap, $outerWrap, originalPoster);
+                //addUnstalkButton($buttonsWrap, $outerWrap, originalPoster);
             } else {
-                addStalkButton($buttonsWrap, $outerWrap, originalPoster);
+                //addStalkButton($buttonsWrap, $outerWrap, originalPoster);
             }
 
             if (markedDiscussions.indexOf(linkDiscussionMatch[1]) > -1) {
@@ -135,6 +141,37 @@
         });
     }
 
+    function addReadButton($buttonsWrap, $outerWrap, $titleElement, linkDiscussionMatch) {
+        var readButton = $('<button class="bsg-action-btn" title="read = mark this post as read"><i class="fa fa-check"></i></button>');
+        $buttonsWrap.append(readButton);
+        readButton.on('click', function() {
+            rememberReadDiscussion(linkDiscussionMatch, parseNumberFromElement($outerWrap.find('.table__column--width-small .table__column__secondary-link')));
+            markDiscussionAsRead($outerWrap);
+            readButton.remove();
+            addUnreadButton($buttonsWrap, $outerWrap, $titleElement, linkDiscussionMatch);
+        });
+    }
+    function addUnreadButton($buttonsWrap, $outerWrap, $titleElement, linkDiscussionMatch) {
+        var unreadButton = $('<button class="bsg-action-btn m-active" title="unread = resets this post as if it was never read before"><i class="fa fa-times"></i></button>');
+        $buttonsWrap.append(unreadButton);
+        unreadButton.on('click', function() {
+            removeReadDiscussion(linkDiscussionMatch[1]);
+            unmarkDiscussionAsRead($outerWrap, $titleElement);
+            unreadButton.remove();
+            addReadButton($buttonsWrap, $outerWrap, $titleElement, linkDiscussionMatch);
+        });
+    }
+
+    function markDiscussionAsRead($outerWrap) {
+        $outerWrap.addClass('bsg-discussion-read');
+    }
+    function unmarkDiscussionAsRead($outerWrap, $titleElement) {
+        $outerWrap.removeClass('bsg-discussion-read');
+        $outerWrap.find('.table__column--width-small .bsg-new-comments').remove();
+        $titleElement.removeClass('bsg-discussion-title-changed');
+        $titleElement.removeAttr('title');
+    }
+
     function markPostOfStalkedUser($outerWrap) {
         $outerWrap.addClass('bsg-stalked-discussion');
     }
@@ -164,6 +201,11 @@
     function addReadDiscussion(id, discussion) {
         var readDiscussions = getReadDiscussions() || {};
         readDiscussions[id] = discussion;
+        localStorage.setItem(storageName, JSON.stringify(readDiscussions));
+    }
+    function removeReadDiscussion(id) {
+        var readDiscussions = getReadDiscussions() || {};
+        delete readDiscussions[id];
         localStorage.setItem(storageName, JSON.stringify(readDiscussions));
     }
 
@@ -372,31 +414,37 @@
                     'opacity: 0.3;' +
                     '}');
         GM_addStyle('.bsg-stalked-discussion.table__row-outer-wrap {' +
-                    'border: 2px solid red;' +
+                    //'border: 2px solid red;' +
+                    'background-color: rgba(185, 214, 230, 0.5);' +
                     'opacity: 1;' +
                     '}');
         GM_addStyle('.bsg-marked-discussion.table__row-outer-wrap {' +
-                    'border: 2px dashed green;' +
+                    //'border: 2px dashed green;' +
+                    'background-color: rgba(185, 230, 185, 0.5);' +
                     'opacity: 1;' +
                     '}');
         GM_addStyle('.bsg-discussion-title-changed {' +
-                    'color: #fd00ff;' +
+                    //'color: #fd00ff;' +
+                    'text-decoration: underline;' +
                     '}');
 
         GM_addStyle('.bsg-new-comments {' +
                     'margin-left: 5px;' +
                     '}');
         GM_addStyle('.bsg-new-comments.m-high {' +
-                    'color: #fd00ff;' +
-                    'font-size: 25px; font-weight: 900;' +
+                    //'color: #fd00ff;' +
+                    'color: #4B72D4;' +
+                    //'font-size: 25px;' +
+                    'font-weight: 900;' +
                     '}');
         GM_addStyle('.bsg-new-comments.m-medium {' +
-                    'color: red;' +
-                    'font-size: 20px; font-weight: 600;' +
+                    //'color: red;' +
+                    //'font-size: 20px;' +
+                    'font-weight: 600;' +
                     '}');
         GM_addStyle('.bsg-new-comments.m-low {' +
-                    'color: blue;' +
-                    'font-size: 13px;' +
+                    //'color: blue;' +
+                    //'font-size: 13px;' +
                     '}');
         GM_addStyle('.bsg-sort-link {' +
                     'color: #4B72D4;' +
