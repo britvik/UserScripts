@@ -2,9 +2,9 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.10.0
+// @version      0.11.0
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
-// @match        https://www.steamgifts.com/discussion*
+// @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
 // @require      http://code.jquery.com/jquery-latest.js
 // @grant        GM_addStyle
@@ -22,12 +22,19 @@
 
     var discussionMatch = matchDiscussion(location.href);
     var discussionsMatch = location.href.match(/.*\/discussions\/?/);
+    var searchMatch = location.href.match(/https:\/\/www\.steamgifts\.com\/?(\/giveaways(\/search.*)?)?$/);
+    var userMatch = location.href.match(/.*\/user\/([^/]+)\/?/);
 
     if (discussionMatch !== null) {
         rememberReadDiscussion(discussionMatch);
+        addMarkingButtons(discussionMatch[1]);
     } else if (discussionsMatch !== null) {
         makeHeadersSortable();
         markReadDiscussions();
+    } else if (searchMatch !== null) {
+        markReadDiscussions();
+    } else if (userMatch !== null) {
+        addStalkUnstalkButton($('.sidebar__shortcut-inner-wrap'), userMatch[1], 'bsg-user-action-btn');
     }
 
     //-------------------------------------------------------------------------------------------------------------------------------------------------
@@ -96,48 +103,77 @@
 
             if (markedDiscussions.indexOf(linkDiscussionMatch[1]) > -1) {
                 markDiscussion($outerWrap);
-                addUnmarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
+                addUnmarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1], 'bsg-action-btn');
             } else {
-                addMarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1]);
+                addMarkButton($buttonsWrap, $outerWrap, linkDiscussionMatch[1], 'bsg-action-btn');
             }
         });
     }
 
-    function addStalkButton($buttonsWrap, $outerWrap, originalPoster) {
-        var stalkButton = $('<button class="bsg-action-btn" title="stalk = every post of this user will be highlighted"><i class="fa fa-eye"></i></button></div>');
+    function addStalkButton($buttonsWrap, originalPoster, btnClass) {
+        var stalkButton = $('<button class="'+btnClass+'" '+getStalkTitle(btnClass)+'><i class="fa fa-eye"></i></button></div>');
         $buttonsWrap.append(stalkButton);
         stalkButton.on('click', function() {
-            addOrRemoveStalkedUser(originalPoster,$outerWrap);
+            addOrRemoveStalkedUser(originalPoster);
             stalkButton.remove();
-            addUnstalkButton($buttonsWrap, $outerWrap, originalPoster);
+            addUnstalkButton($buttonsWrap, originalPoster, btnClass);
         });
+        if (btnClass === 'bsg-user-action-btn') {
+            stalkButton.hover(function() {
+                $buttonsWrap.parent().find('.js-tooltip').text('Stalk user\'s discussions');
+                changeButtonsOpacity($buttonsWrap, stalkButton, 0.2);
+            }, function() {
+                changeButtonsOpacity($buttonsWrap, stalkButton, 1);
+            });
+        }
     }
-    function addUnstalkButton($buttonsWrap, $outerWrap, originalPoster) {
-        var unstalkButton = $('<button class="bsg-action-btn m-active" title="unstalk = every post of this user will not be highlighted anymore"><i class="fa fa-eye-slash"></i></button></div>');
+    function addUnstalkButton($buttonsWrap, originalPoster, btnClass) {
+        var unstalkButton = $('<button class="'+btnClass+' m-active" '+getUnstalkTitle(btnClass)+'><i class="fa fa-eye-slash"></i></button></div>');
         $buttonsWrap.append(unstalkButton);
         unstalkButton.on('click', function() {
-            addOrRemoveStalkedUser(originalPoster,$outerWrap);
+            addOrRemoveStalkedUser(originalPoster);
             unstalkButton.remove();
-            addStalkButton($buttonsWrap, $outerWrap, originalPoster);
+            addStalkButton($buttonsWrap, originalPoster, btnClass);
+        });
+        if (btnClass === 'bsg-user-action-btn') {
+            unstalkButton.hover(function() {
+                $buttonsWrap.parent().find('.js-tooltip').text('Stop stalking user\'s discussions');
+                changeButtonsOpacity($buttonsWrap, unstalkButton, 0.2);
+            }, function() {
+                changeButtonsOpacity($buttonsWrap, unstalkButton, 1);
+            });
+        }
+    }
+    function changeButtonsOpacity($buttonsWrap, button, opacity) {
+        $buttonsWrap.children().each(function() {
+            if (!$(this).is(button)) {
+                $(this).css('opacity', opacity);
+            }
         });
     }
+    function getStalkTitle(btnClass) {
+        return btnClass !== 'bsg-user-action-btn' ? 'title="stalk = every post of this user will be highlighted"' : '';
+    }
+    function getUnstalkTitle(btnClass) {
+        return btnClass !== 'bsg-user-action-btn' ? 'title="unstalk = every post of this user will not be highlighted anymore"' : '';
+    }
 
-    function addMarkButton($buttonsWrap, $outerWrap, discussionId) {
-        var markButton = $('<button class="bsg-action-btn" title="mark = highlight this post"><i class="fa fa-paint-brush"></i></button>');
+    function addMarkButton($buttonsWrap, $outerWrap, discussionId, btnClass) {
+        var markButton = $('<button class="'+btnClass+'" title="mark = highlight this post"><i class="fa fa-paint-brush"></i></button>');
         $buttonsWrap.prepend(markButton);
         markButton.on('click', function() {
             addMarkedDiscussion(discussionId,$outerWrap);
             markButton.remove();
-            addUnmarkButton($buttonsWrap, $outerWrap, discussionId);
+            addUnmarkButton($buttonsWrap, $outerWrap, discussionId, btnClass);
         });
     }
-    function addUnmarkButton($buttonsWrap, $outerWrap, discussionId) {
-        var unmarkButton = $('<button class="bsg-action-btn m-active" title="unmark = remove highlight of this post"><i class="fa fa-paint-brush"></i></button>');
+    function addUnmarkButton($buttonsWrap, $outerWrap, discussionId, btnClass) {
+        var unmarkButton = $('<button class="'+btnClass+' m-active" title="unmark = remove highlight of this post"><i class="fa fa-eraser"></i></button>');
         $buttonsWrap.prepend(unmarkButton);
         unmarkButton.on('click', function() {
             addMarkedDiscussion(discussionId,$outerWrap);
             unmarkButton.remove();
-            addMarkButton($buttonsWrap, $outerWrap, discussionId);
+            addMarkButton($buttonsWrap, $outerWrap, discussionId, btnClass);
         });
     }
 
@@ -186,6 +222,31 @@
         $outerWrap.removeClass('bsg-marked-discussion');
     }
 
+    function addStalkUnstalkButton($buttonsWrap, userName, btnClass) {
+        if (getStalkedUsers().indexOf(userName) < 0) {
+            addStalkButton($buttonsWrap, userName, btnClass);
+        } else {
+            addUnstalkButton($buttonsWrap, userName, btnClass);
+        }
+    }
+    function addMarkUnmarkButton($buttonsWrap, discussionId, btnClass) {
+        if (getMarkedDiscussions().indexOf(discussionId) > -1) {
+            addUnmarkButton($buttonsWrap, null, discussionId, btnClass);
+        } else {
+            addMarkButton($buttonsWrap, null, discussionId, btnClass);
+        }
+    }
+
+    function addMarkingButtons(discussionId) {
+        var $buttonsWrap = $('<div style="margin-left: auto"></div>');
+        var $commentActions = $('.comment__actions').first();
+        var userName = $commentActions.closest('.comment__summary').find('.comment__username').text();
+        $commentActions.append($buttonsWrap);
+
+        addMarkUnmarkButton($buttonsWrap, discussionId, 'bsg-discussion-action-btn');
+        addStalkUnstalkButton($buttonsWrap, userName, 'bsg-discussion-action-btn');
+    }
+
     function getClassesForNewComments(commentsCount) {
         var classes = 'bsg-new-comments ';
         if (commentsCount >= 100) {
@@ -221,17 +282,15 @@
         return JSON.parse(localStorage.getItem(markedDiscussionsStorageName)) || [];
     }
 
-    function addOrRemoveStalkedUser(userName,$outerWrap) {
+    function addOrRemoveStalkedUser(userName) {
         var users = getStalkedUsers(),
             index = users.indexOf(userName);
         if (index < 0) {
             users.push(userName);
             localStorage.setItem(stalkedStorageName, JSON.stringify(users));
-            markPostOfStalkedUser($outerWrap);
         } else {
             users.splice(index, 1);
             localStorage.setItem(stalkedStorageName, JSON.stringify(users));
-            unmarkPostOfStalkedUser($outerWrap);
         }
     }
 
@@ -241,11 +300,15 @@
         if (index < 0) {
             markedDiscussions.push(discussionId);
             localStorage.setItem(markedDiscussionsStorageName, JSON.stringify(markedDiscussions));
-            markDiscussion($outerWrap);
+            if ($outerWrap) {
+                markDiscussion($outerWrap);
+            }
         } else {
             markedDiscussions.splice(index, 1);
             localStorage.setItem(markedDiscussionsStorageName, JSON.stringify(markedDiscussions));
-            unmarkDiscussion($outerWrap);
+            if ($outerWrap) {
+                unmarkDiscussion($outerWrap);
+            }
         }
     }
 
@@ -408,6 +471,28 @@
                     'background-image: linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
                     'background-image: -moz-linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
                     'background-image: -webkit-linear-gradient(#fad9e4 0%, #f1c0d2 100%);' +
+                    '}');
+
+        GM_addStyle('.bsg-user-action-btn {' +
+                    'color: #465670;' +
+                    'background-color: transparent;' +
+                    '}');
+        GM_addStyle('.bsg-user-action-btn.m-active {' +
+                    'background-image: linear-gradient(#CAEEA7 0%, #B4DF8A 50%, #9AC96A 100%) !important;' +
+                    'background-image: -moz-linear-gradient(#CAEEA7 0%, #B4DF8A 50%, #9AC96A 100%) !important;' +
+                    'background-image: -webkit-linear-gradient(#CAEEA7 0%, #B4DF8A 50%, #9AC96A 100%) !important;' +
+                    'border-color: #B9D393 #96BC69 #73A442 #A0C870;' +
+                    'color: rgba(63,115,0,0.95);' +
+                    'text-shadow: 1px 1px 1px rgba(224,246,198,0.5);' +
+                    '}');
+        GM_addStyle('.bsg-discussion-action-btn {' +
+                    'color: #9aa1af;' +
+                    'background-color: transparent;' +
+                    'cursor: pointer;' +
+                    'margin-left: 7px;' +
+                    '}');
+        GM_addStyle('.bsg-discussion-action-btn.m-active, .bsg-discussion-action-btn:hover {' +
+                    'color: #12141a;' +
                     '}');
 
         GM_addStyle('.bsg-discussion-read.table__row-outer-wrap {' +
