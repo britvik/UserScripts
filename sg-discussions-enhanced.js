@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.11.0
+// @version      0.11.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
@@ -238,10 +238,10 @@
     }
 
     function addMarkingButtons(discussionId) {
-        var $buttonsWrap = $('<div style="margin-left: auto"></div>');
+        var $buttonsWrap = $('<div class="bsg-discussion-actions-wrap"></div>');
         var $commentActions = $('.comment__actions').first();
         var userName = $commentActions.closest('.comment__summary').find('.comment__username').text();
-        $commentActions.append($buttonsWrap);
+        $commentActions.prepend($buttonsWrap);
 
         addMarkUnmarkButton($buttonsWrap, discussionId, 'bsg-discussion-action-btn');
         addStalkUnstalkButton($buttonsWrap, userName, 'bsg-discussion-action-btn');
@@ -484,6 +484,13 @@
                     'border-color: #B9D393 #96BC69 #73A442 #A0C870;' +
                     'color: rgba(63,115,0,0.95);' +
                     'text-shadow: 1px 1px 1px rgba(224,246,198,0.5);' +
+                    '}');
+
+
+        GM_addStyle('.bsg-discussion-actions-wrap {' +
+                    'margin-right: -42px !important;' +
+                    'position: relative;' +
+                    'right: 55px;' +
                     '}');
         GM_addStyle('.bsg-discussion-action-btn {' +
                     'color: #9aa1af;' +
