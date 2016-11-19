@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.11.1
+// @version      0.11.2
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
@@ -499,7 +499,7 @@
                     'margin-left: 7px;' +
                     '}');
         GM_addStyle('.bsg-discussion-action-btn.m-active, .bsg-discussion-action-btn:hover {' +
-                    'color: #12141a;' +
+                    'color: #9dcb6d;' +
                     '}');
 
         GM_addStyle('.bsg-discussion-read.table__row-outer-wrap {' +
