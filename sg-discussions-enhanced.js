@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.11.2
+// @version      0.12.0
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
@@ -31,6 +31,8 @@
     } else if (discussionsMatch !== null) {
         makeHeadersSortable();
         markReadDiscussions();
+        addManagementButtons();
+        addLastPostButton();
     } else if (searchMatch !== null) {
         markReadDiscussions();
     } else if (userMatch !== null) {
@@ -336,6 +338,55 @@
         }
     }
 
+    function addManagementButtons() {
+        var $heading = $('.page__heading__breadcrumbs');
+        var importLink = $('<a class="table__column__secondary-link" style="margin-left: auto; cursor: pointer;">Import</a>');
+        var exportLink = $('<a class="table__column__secondary-link" style="margin-left: 10px; cursor: pointer;">Export</a>');
+
+        importLink.on('click', function() {
+            var textToImport = prompt('*** Bladito\'s discussions script ***\nInsert exported data here:');
+            if (textToImport !== null) {
+                try {
+                    var jsonToImport = JSON.parse(textToImport);
+                    for (var key in jsonToImport) {
+                        if (jsonToImport.hasOwnProperty(key)) { // TODO compare time and add entry only if it's newer than existing one
+                            addReadDiscussion(key, jsonToImport[key]);
+                        }
+                    }
+                } catch (e) {
+                    alert('Error! Cannot parse inserted data!');
+                }
+            }
+        });
+        exportLink.on('click', function() {
+            window.prompt('*** Bladito\'s discussions script ***\nExport data of your read discussions.\nCopy text to clipboard and import it later...', JSON.stringify(getReadDiscussions()));
+        });
+
+        $heading.append(importLink);
+        $heading.append(exportLink);
+    }
+
+    function addLastPostButton() {
+        $('.table__last-comment-icon').after(
+            '<a class="icon-red bsg-last-page-icon" title="Go to last page"><i class="fa fa-chevron-circle-down"></i></a>'
+        );
+        $('body').on('click', 'a.bsg-last-page-icon', function() {
+            var lastCommentHref = $(this).prev().attr('href');
+            $.get(lastCommentHref, function(data) {
+                var lastPageLink = $(data).find('.pagination__navigation a:last');
+                if (lastPageLink.length) {
+                    $.get(lastPageLink.attr('href'), goToLastCommentOnPage);
+                } else {
+                    goToLastCommentOnPage(data);
+                }
+            });
+        });
+
+        function goToLastCommentOnPage(pageContent) {
+            location.href = $(pageContent).find('a.comment__actions__button:last').attr('href');
+        }
+    }
+
     function updateSortIcon(sortingName) {
         var sortingBy = getSorting();
         if (sortingBy.indexOf(sortingName) > -1) {
@@ -540,6 +591,10 @@
                     '}');
         GM_addStyle('.bsg-sort-link {' +
                     'color: #4B72D4;' +
+                    'cursor: pointer;' +
+                    '}');
+        GM_addStyle('.bsg-last-page-icon {' +
+                    'margin-left: 5px;' +
                     'cursor: pointer;' +
                     '}');
     }
