@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.12.0
+// @version      0.12.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
@@ -36,7 +36,7 @@
     } else if (searchMatch !== null) {
         markReadDiscussions();
     } else if (userMatch !== null) {
-        addStalkUnstalkButton($('.sidebar__shortcut-inner-wrap'), userMatch[1], 'bsg-user-action-btn');
+        addStalkUnstalkButton($('.sidebar .sidebar__shortcut-inner-wrap'), userMatch[1], 'bsg-user-action-btn');
     }
 
     //-------------------------------------------------------------------------------------------------------------------------------------------------
