@@ -2,7 +2,7 @@
 // @name         SteamGifts discussions enhanced
 // @description  Automatically mark read discussions, show count of new comments since last read, show if post title changed, manually mark one post or all posts of user, sort discussions
 // @author       Bladito
-// @version      0.12.1
+// @version      0.13.0
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.steamgifts.com/*
 // @namespace    Bladito/sg-discussions
@@ -33,6 +33,13 @@
         markReadDiscussions();
         addManagementButtons();
         addLastPostButton();
+        detectAdditionInDOM($('.page__inner-wrap .widget-container').children()[1], function(mutations) {
+            if (mutations[0].addedNodes[1] && mutations[0].addedNodes[1].className === 'table') {
+                var $newTable = $(mutations[0].addedNodes[1]);
+                markReadDiscussions($newTable);
+                addLastPostButton($newTable);
+            }
+        });
     } else if (searchMatch !== null) {
         markReadDiscussions();
     } else if (userMatch !== null) {
@@ -62,11 +69,12 @@
         return parseInt(element.text().replace(/[^0-9]/g, ''));
     }
 
-    function markReadDiscussions() {
-        var linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, originalPoster,
+    function markReadDiscussions($table) {
+        var $source = $table || $('body'),
+            linkDiscussionMatch, $this, $outerWrap, $buttonsWrap, originalPoster,
             readDiscussion, readDiscussions = getReadDiscussions(), stalkedUsers = getStalkedUsers(), markedDiscussions = getMarkedDiscussions();
 
-        $('a.table__column__heading').each(function() {
+        $source.find('a.table__column__heading').each(function() {
             $this = $(this);
             $outerWrap = $this.closest('.table__row-outer-wrap');
             $buttonsWrap = $('<div class="action-btns-wrap"></div>');
@@ -366,11 +374,13 @@
         $heading.append(exportLink);
     }
 
-    function addLastPostButton() {
-        $('.table__last-comment-icon').after(
+    function addLastPostButton($table) {
+        var $source = $table || $('body');
+
+        $source.find('.table__last-comment-icon').after(
             '<a class="icon-red bsg-last-page-icon" title="Go to last page"><i class="fa fa-chevron-circle-down"></i></a>'
         );
-        $('body').on('click', 'a.bsg-last-page-icon', function() {
+        $source.on('click', 'a.bsg-last-page-icon', function() {
             var lastCommentHref = $(this).prev().attr('href');
             $.get(lastCommentHref, function(data) {
                 var lastPageLink = $(data).find('.pagination__navigation a:last');
@@ -493,6 +503,24 @@
 
     function getSorting() {
         return localStorage.getItem(sortingStorageName) || "+LastPost";
+    }
+
+    function detectAdditionInDOM(obj, callback){
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+        if( MutationObserver ){
+            // define a new observer
+            var obs = new MutationObserver(function(mutations, observer){
+                if(mutations[0].addedNodes.length) {
+                    callback(mutations);
+                }
+            });
+            // have the observer observe foo for changes in children
+            obs.observe( obj, { childList:true, subtree:true });
+        }
+        else if( window.addEventListener ){
+            obj.addEventListener('DOMNodeInserted', callback, false);
+            obj.addEventListener('DOMNodeRemoved', callback, false);
+        }
     }
 
     function addStyles() {
