@@ -2,7 +2,7 @@
 // @name         9gag remember position
 // @description  If you scroll down and then close your browser, you lose your scrolling progress. This script adds one magical button, that remembers the position for you as bookmarkable link. Easily allowing you to continue where you left off.
 // @author       Bladito
-// @version      0.2.0
+// @version      0.2.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        http://9gag.com/*
 // @namespace    Bladito/9gag
@@ -36,21 +36,21 @@
         }
     }
 
-    function detectAdditionInDOM(obj, callback){
+    function detectAdditionInDOM(node, callback) {
         var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-        if( MutationObserver ){
-            var obs = new MutationObserver(function(mutations, observer){
-                if(mutations[0].addedNodes.length) {
-                    callback(mutations);
-                }
-            });
-            obs.observe( obj, { childList:true, subtree:true });
-        }
-        else if( window.addEventListener ){
-            obj.addEventListener('DOMNodeInserted', callback, false);
+        if (node) {
+            if (MutationObserver) {
+                var obs = new MutationObserver(function(mutations, observer) {
+                    if(mutations[0].addedNodes.length) {
+                        callback(mutations);
+                    }
+                });
+                obs.observe(node, { childList:true, subtree:true });
+            } else if (window.addEventListener) {
+                node.addEventListener('DOMNodeInserted', callback, false);
+            }
         }
     }
-
     GM_addStyle('.b9g-remember-btn:after {' +
                 'position: absolute;' +
                 'content: " ";' +
