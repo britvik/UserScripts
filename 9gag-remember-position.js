@@ -2,7 +2,7 @@
 // @name         9gag remember position
 // @description  If you scroll down and then close your browser, you lose your scrolling progress. This script adds one magical button, that remembers the position for you as bookmarkable link. Easily allowing you to continue where you left off.
 // @author       Bladito
-// @version      0.2.2
+// @version      0.2.3
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        *://9gag.com/*
 // @namespace    Bladito/9gag
@@ -13,7 +13,7 @@
 (function($) {
     'use strict';
 
-    detectAdditionInDOM($('.badge-entry-collection').get(0), function(mutations) {
+    detectAdditionInDOM($('.main-wrap').get(0), function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.addedNodes) {
                 mutation.addedNodes.forEach(function(node) {
@@ -31,8 +31,11 @@
             var prev2 = prev1.prev();
             var prev3 = prev2.prev();
             var url = [location.protocol, '//', location.host, location.pathname].join('');
-            var params = '?id='+prev1.data('entry-id')+'%2C'+prev2.data('entry-id')+'%2C'+prev3.data('entry-id')+'&c=10';
-            $target.find('.btn-vote.left:not(:has(>.b9g-remember-btn))').append('<li><a class="b9g-remember-btn" title="Remember position" href="'+url+params+'" rel="nofollow">Remember position</a></li>');
+            var params = '?id='+getId(prev1)+'%2C'+getId(prev2)+'%2C'+getId(prev3)+'&c=10';
+            $target.find('.share.right:not(:has(>.b9g-remember-btn)) ul').prepend('<li class="btn-vote"><a class="b9g-remember-btn" title="Remember position" href="'+url+params+'" rel="nofollow"></a></li>');
+        }
+        function getId(el) {
+            return el.attr('id').replace('jsid-entry-entity-', '');
         }
     }
 
