@@ -2,19 +2,56 @@
 // @name         Auto mp3 downloader
 // @description  Automatic download of multiple mp3s from https://www.emp3z.com. Just insert list of songs into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.6.4
+// @version      0.6.5
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        *://www.emp3x.ws/*
 // @match        *://www.emp3z.ws/*
 // @match        *://www.emp3z.co/*
 // @match        *://www.emp3z.com/*
+// @match        *://www.emp3c.com/*
 // @match        *://www.emp3s.co/*
+// @match        *://www.emp3d.co/*
+// @match        *://www.emp3c.co/*
+// @match        *://y-api.org/button/*
 // @namespace    Bladito/auto-mp3-downloader
+// @require      http://code.jquery.com/jquery-latest.js
 // @grant        none
 // ==/UserScript==
 
 (function($) {
     'use strict';
+
+    // run this code in inner cross origin iframe
+    if (isSubstringInURL('/button/')) {
+        log('SCRIPT 2');
+        rememberUrlForSong();
+        return;
+    }
+
+    log('SCRIPT 1');
+
+    window.addEventListener('message', receiveMessage, false);
+
+    function receiveMessage(evt) {
+        log('RECEIVED MESSAGE', evt);
+        if (evt.data && evt.data.indexOf('Bladito') === 0) {
+            setFoundDataForCurrentSong($('.song-list ul:eq(0) li:eq(0) a b').text(), evt.data.replace('Bladito', ''));
+            findUrlForNextSong();
+        }
+    }
+
+    // block annoying popups
+    var openWindow = window.open;
+    window.open = function() {
+        console.log('[Bladito/auto-mp3-downloader] Blocked opening window');
+        return;
+    };
+    detectAdditionInDOM($('body').get(0), function(mutation) {
+        if (mutation.target.tagName === 'BODY' && mutation.addedNodes[0].tagName === 'A') {
+            console.log('[Bladito/auto-mp3-downloader] Removing overlay');
+            $(mutation.addedNodes[0]).remove();
+        }
+    });
 
     var storageName = 'Bladito_autoDownloader_toDL';
     var storageStateName = 'Bladito_autoDownloader_state';
@@ -46,8 +83,8 @@
             window.location.href = $('a[href^="/download"')[0].href;
         } else if (isDetailPage()) {
             log('remembering download url');
-            $('#dl1').click();
-            rememberUrlForSong();
+            $('#dl1').click(); // this will fetch another iframe
+            //rememberUrlForSong();
         } else if (isNotFoundPage()) {
             log('song not found');
             setFoundDataForCurrentSong('N/A', undefined);
@@ -99,8 +136,12 @@
             log('gonna find ', nextSong.name);
 
             setNowFinding(nextSong.name);
-            $('input[name="search"]').val(nextSong.name);
-            $('input[name="search"]').parents('form').submit();
+
+            $('input[name="search"]', window.parent.document).val(nextSong.name);
+            $('input[name="search"]', window.parent.document).parents('form').submit();
+
+            //$('input[name="search"]').val(nextSong.name);
+            //$('input[name="search"]').parents('form').submit();
         } else {
             location.href = 'https://www.emp3z.com/';
         }
@@ -165,6 +206,7 @@
     }
 
     function rememberUrlForSong() {
+        /*
         var interval = setInterval(function() {
             log('finding link...');
 
@@ -176,6 +218,17 @@
                 findUrlForNextSong();
             }
         }, 1000);
+        */
+        var interval = setInterval(function() {
+            log('finding link...');
+
+            var link = $('#button a')[0];
+            if (link && link.href && link.href.length > 0) {
+                window.clearInterval(interval);
+                log('found link! sending message', link.href);
+                window.parent.parent.postMessage('Bladito' + link.href, '*');
+            }
+        }, 1000);
     }
 
     function downloadSongs() {
@@ -183,7 +236,7 @@
 
         for (var i=0; i<list.length; i+=1) {
             if (list[i].url) {
-                window.open(list[i].url, '_blank');
+                openWindow(list[i].url, '_blank');
             }
         }
     }
@@ -331,6 +384,24 @@
 
     function getMp3List() {
         return JSON.parse(localStorage.getItem(storageName));
+    }
+
+    function detectAdditionInDOM(node, callback) {
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+        if (node) {
+            if (MutationObserver) {
+                var obs = new MutationObserver(function(mutations, observer) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.addedNodes.length) {
+                            callback(mutation);
+                        }
+                    });
+                });
+                obs.observe(node, { childList:true, subtree:true });
+            } else if (window.addEventListener) {
+                node.addEventListener('DOMNodeInserted', callback, false);
+            }
+        }
     }
 
 })(jQuery);
