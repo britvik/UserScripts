@@ -2,7 +2,7 @@
 // @name         Auto mp3 downloader
 // @description  Automatic download of multiple mp3s from https://www.emp3z.com. Just insert list of songs into textarea, push the button and wait till it finishes.
 // @author       Bladito
-// @version      0.6.5
+// @version      0.6.6
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        *://www.emp3x.ws/*
 // @match        *://www.emp3z.ws/*
@@ -12,6 +12,7 @@
 // @match        *://www.emp3s.co/*
 // @match        *://www.emp3d.co/*
 // @match        *://www.emp3c.co/*
+// @match        *://www.emp3e.com/*
 // @match        *://y-api.org/button/*
 // @namespace    Bladito/auto-mp3-downloader
 // @require      http://code.jquery.com/jquery-latest.js
@@ -34,8 +35,8 @@
 
     function receiveMessage(evt) {
         log('RECEIVED MESSAGE', evt);
-        if (evt.data && evt.data.indexOf('Bladito') === 0) {
-            setFoundDataForCurrentSong($('.song-list ul:eq(0) li:eq(0) a b').text(), evt.data.replace('Bladito', ''));
+        if (evt.data && evt.data.indexOf('Bladito_link:') === 0) {
+            setFoundDataForCurrentSong($('.song-list ul:eq(0) li:eq(0) a b').text(), evt.data.replace('Bladito_link:', ''));
             findUrlForNextSong();
         }
     }
@@ -223,10 +224,13 @@
             log('finding link...');
 
             var link = $('#button a')[0];
-            if (link && link.href && link.href.length > 0) {
+            if (link && link.href === 'https://y-api.org/') {
+                $('#progress').click();
+            }
+            if (link && link.href && link.href.length > 0 && link.href !== 'https://y-api.org/') {
                 window.clearInterval(interval);
                 log('found link! sending message', link.href);
-                window.parent.parent.postMessage('Bladito' + link.href, '*');
+                window.parent.parent.postMessage('Bladito_link:' + link.href, '*');
             }
         }, 1000);
     }
