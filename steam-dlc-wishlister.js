@@ -2,7 +2,7 @@
 // @name         Steam DLC wishlister
 // @description  Add all DLCs on wishlist by one click. Also you can remove game from wishlist directly from game store page.
 // @author       Bladito
-// @version      0.4.0
+// @version      0.4.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        http://store.steampowered.com/app/*
 // @namespace    Bladito/steam-dlc-wishlister
@@ -15,7 +15,7 @@
 
     addDlcButton();
 
-    if ($('#add_to_wishlist_area').length === 0) { // game is wishlisted
+    if ($('#add_to_wishlist_area').length === 0 && $('.game_area_already_owned').length === 0) { // game is wishlisted and not owned
         addButton_removeFromWishlist();
     }
     $('#add_to_wishlist_area').click(addButton_removeFromWishlist);
