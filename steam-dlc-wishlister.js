@@ -2,9 +2,9 @@
 // @name         Steam DLC wishlister
 // @description  Add all DLCs on wishlist by one click. Also you can remove game from wishlist directly from game store page.
 // @author       Bladito
-// @version      0.4.1
+// @version      0.4.2
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
-// @match        http://store.steampowered.com/app/*
+// @match        https://store.steampowered.com/app/*
 // @namespace    Bladito/steam-dlc-wishlister
 // @require      http://code.jquery.com/jquery-latest.js
 // @grant        GM_addStyle
@@ -85,7 +85,7 @@
             action: 'remove',
             appid: window.location.href.match(/https?:\/\/store\.steampowered\.com\/app\/([^\/]+)/)[1]
         };
-        $.post("http://store.steampowered.com/api/removefromwishlist", data, function() {
+        $.post("https://store.steampowered.com/api/removefromwishlist", data, function() {
             window.location.reload();
         });
     }
