@@ -2,7 +2,7 @@
 // @name         9gag remember position
 // @description  If you scroll down and then close your browser, you lose your scrolling progress. This script adds one magical button, that remembers the position for you as bookmarkable link. Easily allowing you to continue where you left off.
 // @author       Bladito
-// @version      0.2.6
+// @version      0.2.7
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        *://9gag.com/*
 // @namespace    Bladito/9gag
@@ -15,28 +15,24 @@
 
     detectAdditionInDOM($('.main-wrap').get(0), function(mutations) {
         mutations.forEach(function(mutation) {
-            if (mutation.addedNodes) {
-                mutation.addedNodes.forEach(function(node) {
-                    $(node).find('ARTICLE').each(function(index, article) {
-                        addRememberButton($(article));
-                    });
+            if (mutation.addedNodes && $(mutation.addedNodes.item(0)).hasClass('list-stream')) {
+                const allArticles = $('.list-stream').find('article[id]');
+                allArticles.each(function(index, article) {
+                    if (index > 2) {
+                        addRememberButton($(article), $(allArticles[index-1]), $(allArticles[index-2]), $(allArticles[index-3]));
+                    }
                 });
             }
         });
     });
 
-    function addRememberButton($target) {
-        if ($target.prevAll().length >= 3) {
-            var prev1 = $target.prev();
-            var prev2 = prev1.prev();
-            var prev3 = prev2.prev();
-            var url = [location.protocol, '//', location.host, location.pathname].join('');
-            var params = '?id='+getId(prev1)+'%2C'+getId(prev2)+'%2C'+getId(prev3)+'&c=10';
-            $target.find('.share.right:not(:has(>.b9g-remember-btn)) ul').prepend('<li class="btn-vote"><a class="b9g-remember-btn" title="Remember position" href="'+url+params+'" rel="nofollow" onclick="window.location.reload()"></a></li>');
-        }
-        function getId(el) {
-            return el.attr('id').replace('jsid-post-', '');
-        }
+    function addRememberButton($target, prev1, prev2, prev3) {
+        const getId = (el) => el.attr('id').replace('jsid-post-', '');
+        const url = [location.protocol, '//', location.host, location.pathname].join('');
+        const params = '?id='+getId(prev1)+'%2C'+getId(prev2)+'%2C'+getId(prev3)+'&c=10';
+        console.log(url+params);
+        $target.find('.share.right:not(:has(.b9g-remember-btn)) ul')
+            .prepend(`<li class="btn-vote"><a class="b9g-remember-btn" title="Remember position" href="${url+params}" rel="nofollow" onClick="setTimeout(()=>window.location.reload(true))"></a></li>`);
     }
 
     function detectAdditionInDOM(node, callback) {
@@ -63,8 +59,8 @@
                 'top: 50%;' +
                 'margin-top: -15px;' +
                 'margin-left: -15px;' +
-                'background: #fff url(http://assets-9gag-fun.9cache.com/s/fab0aa49/2be0fee1ca1689308b4eb2487fb403f99b48399e/static/dist/web6/img/sprite.png) -72px -8px no-repeat;' +
-                'background-size: 280px 90px;' +
+                'background: url(https://assets-9gag-fun.9cache.com/s/fab0aa49/a5edd735f6a943e46bc0ff39b700ae2a28d123de/static/dist/web6/img/sprite.png) -87px -12px no-repeat;' +
+                'background-size: 700px 220px;' +
                 '}');
 
-})(jQuery);
+})(window.jQuery);
