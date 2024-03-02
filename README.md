@@ -1,5 +1,10 @@
 # UserScripts
-Few useful scripts for Google Chrome Tampermonkey extension (or Greasemonkey in FireFox). Created for my personal use, but feel free to use them as well if you like. See more at my<a href="https://greasyfork.org/en/users/55159-bladito">Greasyfork profile</a>.
+Few useful scripts for Google Chrome Tampermonkey extension (or Greasemonkey in FireFox). Created for my personal use, but feel free to use them as well if you like. See more at my <a href="https://greasyfork.org/en/users/55159-bladito">Greasyfork profile</a>.
+
+<h3>IMDB_TRAKT_LINK</h3>
+- tested on [Chrome] (<a href="https://i.imgur.com/oP9p6Qk.jpg">screenshot</a>)
+- Adds a link that opens current movie on trakt.tv website.
+- Adds a link that searches current movie name on trakt.tv website.
 
 <h3>9gag remember position</h3>
 - tested on [Chrome] (<a href="http://i.imgur.com/xa8MMgE.png">screenshot</a>)
