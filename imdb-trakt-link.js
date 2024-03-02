@@ -2,7 +2,7 @@
 // @name         IMDB_TRAKT_LINK
 // @description  Adds trakt link to IMDB site
 // @author       Bladito
-// @version      1.0.0
+// @version      1.0.1
 // @homepageURL  https://greasyfork.org/en/users/55159-bladito
 // @match        https://www.imdb.com/title/*
 // @namespace    Bladito/imdb-trakt-link
@@ -19,7 +19,7 @@
     var imdbId = document.URL.match('.*/title/(tt[0-9]+)')[1];
     var movieName = $titleElement.text();
     var year = $titleElement.parent().find('.ipc-inline-list__item:first-child').text();
-    var traktUrl = `https://trakt.tv/movies/${movieName.replace(/[ ]+/g,'-')}-${year}`;
+    var traktUrl = `https://trakt.tv/search/imdb?q=${imdbId}`;
     var traktSearchUrl = `https://trakt.tv/search?query=${movieName.replace(/[ ]+/g,'+')}+${year}`;
 
     $titleElement.append($(`<a target="_blank" href="${traktUrl}">${traktIcon}</a>`));
